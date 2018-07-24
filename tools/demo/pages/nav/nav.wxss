@@ -1,0 +1,7 @@
+.button-area {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-top: 61px;
+}
+.button-area button {margin: 10px;}
