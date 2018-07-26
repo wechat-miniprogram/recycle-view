@@ -1,7 +1,6 @@
-// components/recycle-item/recycle-item.js
 Component({
   relations: {
-    '../recycle-view/recycle-view': {
+    './recycle-view': {
       type: 'parent', // 关联的目标节点应为子节点
       linked: function (target) {
       }

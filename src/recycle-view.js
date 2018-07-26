@@ -10,14 +10,14 @@ const BOUNDARY_INTERVAL = 400 // 到达边界多少距离的时候, 直接改为
 const THROTTLE_DISTANCE = 2000 // 超过这个的滚动距离必须要抛弃掉
 const SETDATA_INTERVAL_BOUNDARY = 300 // 大于300ms则减少MAX_SHOW_SCREEN的值
 const SETDATA_INTERVAL_BOUNDARY_1 = 500
-const transformRpx = require('../utils/transformRpx.js').transformRpx
+const transformRpx = require('./utils/transformRpx.js').transformRpx
 
 Component({
   options: {
     multipleSlots: true // 在组件定义时的选项中启用多slot支持
   },
   relations: {
-    '../recycle-item/recycle-item': {
+    './recycle-item': {
       type: 'child', // 关联的目标节点应为子节点
       linked: function (target) {
         // 检查第一个的尺寸就好了吧

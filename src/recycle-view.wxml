@@ -1,4 +1,3 @@
-<!--components/recycle-view/recycle-view.wxml-->
 <view bindtouchstart='_beginToScroll' style="height:{{height}}px;width:{{width}}px;transform:translateZ(0);-webkit-transform:translateZ(0);" id="content" class="wrap">
   <scroll-view bindscroll="_scrollViewDidScroll" class="content" style='height:100%;' scroll-y="{{true}}" scroll-x="{{false}}" upper-threshold="{{upperThreshold}}" lower-threshold="{{lowerThreshold}}" scroll-top="{{innerScrollTop}}" scroll-into-view="{{innerScrollIntoView}}" scroll-with-animation="{{scrollWithAnimation}}" bindscrolltoupper="_scrollToUpper" bindscrolltolower="_scrollToLower" enable-back-to-top="{{enableBackToTop}}" throttle="{{throttle}}">
     <view style="height:{{beforeSlotHeight ? beforeSlotHeight + 'px' : 'auto'}}" class="slot-before">
