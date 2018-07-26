@@ -33,7 +33,6 @@
     "gulp-sourcemaps": "^2.6.4",
     "through2": "^2.0.3",
     "webpack": "^4.16.0",
-    "webpack-node-externals": "^1.7.2",
-    "webpack-stream": "^4.0.3"
+    "webpack-node-externals": "^1.7.2"
   }
 }

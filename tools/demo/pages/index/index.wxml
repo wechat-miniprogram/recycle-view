@@ -1,4 +1,15 @@
-<!--index.wxml-->
-<view class="container">
-  <button bindtap="onTap">点击跳转</button>
-</view>
+<button bindtap="scrollTo2000">scrollTo2000</button>
+<button bindtap="scrollTo0">scrollTo0</button>
+<button bindtap="scrollToid">scrollToIdx</button>
+<button bindtap="getScrollTop">getScrollTop</button><!--  -->
+<!-- <button bindtap="newEmptyPage">gotoNewEmptyPage</button> -->
+<recycle-view scroll-with-animation="{{true}}" scroll-to-index="{{index}}" scroll-top="{{scrollTop}}" batch="{{batchSetRecycleData}}" height="500" id="recycleId">
+  <view slot="before" style='height: 200px;'>before height:200px view</view>
+  <recycle-item style="height: 182px;width: 162px;" wx:for="{{recycleList}}" wx:key="id">
+    <view>
+        <image style='width:80px;height:80px;float:left;' src="{{item.image_url}}?imageView2/2/w/120/h/0/q/120/format/jpg"></image>  
+      {{item.idx+1}}. {{item.title}}
+    </view>
+  </recycle-item>
+  <view slot="after" style="height:200px;">after height:200px view</view>
+</recycle-view>

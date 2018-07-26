@@ -7,7 +7,6 @@ const rename = require('gulp-rename');
 const gulpif = require('gulp-if');
 const sourcemaps = require('gulp-sourcemaps');
 const webpack = require('webpack');
-const gulpWebpack = require('webpack-stream');
 const gulpInstall = require('gulp-install');
 
 const config = require('./config');
