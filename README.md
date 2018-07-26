@@ -1,5 +1,9 @@
 # recycle-view
 
+小程序自定义组件
+
+> 使用此组件需要依赖小程序基础库 2.2.2 版本，同时依赖开发者工具的 npm 构建。具体详情可查阅[官方 npm 文档](https://developers.weixin.qq.com/miniprogram/dev/devtools/npm.html)。
+
 ## 背景
 
 ​ 电商小程序往往需要展示很多商品，当一个页面展示很多的商品信息的时候，会造成小程序页面的卡顿以及白屏。原因有如下几点：
@@ -20,36 +24,40 @@
 
 ​ 在滚动过程中，为了避免频繁出现白屏，会多渲染当前屏幕的前后2个屏幕的内容。
 
-## 代码目录结构
+## 包结构
 
-长列表组件在 DEMO 里面的 recycle-view 文件夹内。长列表代码由2个自定义组件 recycle-view、recycle-item 和一组 API 组成，对应的代码结构如下
+长列表组件由2个自定义组件 recycle-view、recycle-item 和一组 API 组成，对应的代码结构如下
 
 ```yaml
-├── recycle-view/
-    └── recycle-view/
-    └── recycle-item/
+├── miniprogram-recycle-view/
+    └── recycle-view 组件
+    └── recycle-item 组件
     └── index.js
 ```
 
-recycle-view 目录下的结构详细描述如下：
+包结构详细描述如下：
 
 | 目录/文件          | 描述                     |
 | ----------------- | ------------------------ |
-| recycle-view 目录 | 长列表组件目录             |
-| recycle-item 目录 | 长列表每一项 item 组件目录 |
+| recycle-view 组件 | 长列表组件                |
+| recycle-item 组件 | 长列表每一项 item 组件     |
 | index.js          | 提供操作长列表数据的API    |
 
 ## 使用方法
 
-1. 把整个长列表的目录 recycle-view 引入到小程序项目中。
+1. 安装组件
+
+```
+npm install --save miniprogram-recycle-view
+```
 
 2. 在页面的 json 配置文件中添加 recycle-view 和 recycle-item 自定义组件的配置
 
    ```json
    {
      "usingComponents": {
-       "recycle-view": "/recycle-view/recycle-view/recycle-view",
-       "recycle-item": "/recycle-view/recycle-item/recycle-item"
+       "recycle-view": "miniprogram-recycle-view/recycle-view",
+       "recycle-item": "miniprogram-recycle-view/recycle-item"
      }
    }
    ```
@@ -104,7 +112,7 @@ recycle-view 目录下的结构详细描述如下：
 4. 页面 JS 管理 recycle-view 的数据
 
    ```javascript
-   const createRecycleContext = require('../../functional-components/recycle-view/index.js')
+   const createRecycleContext = require('miniprogram-recycle-view')
    Page({
        onReady: function() {
            var ctx = createRecycleContext({
@@ -130,7 +138,7 @@ recycle-view 目录下的结构详细描述如下：
    })
    ```
 
-   ​  页面必须通过 Component 构造器定义，页面引入了`recycle-view/index.js`文件之后，会在 wx 对象下面新增接口`createRecycleContext`函数创建`RecycleContext`对象来管理 recycle-view 定义的的数据，`createRecycleContext`接收类型为1个 Object 的参数，Object 参数的每一个 key 的介绍如下：
+   ​  页面必须通过 Component 构造器定义，页面引入了`miniprogram-recycle-view`包之后，会在 wx 对象下面新增接口`createRecycleContext`函数创建`RecycleContext`对象来管理 recycle-view 定义的的数据，`createRecycleContext`接收类型为1个 Object 的参数，Object 参数的每一个 key 的介绍如下：
 
    | 参数名    | 类型            | 描述                                                             |
    | -------- | --------------- | --------------------------------------------------------------- |
