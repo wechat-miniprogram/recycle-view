@@ -14,7 +14,7 @@
 	"compileType": "miniprogram",
 	"libVersion": "2.1.0",
 	"appid": "",
-	"projectname": "navigation-bar",
+	"projectname": "recycle-view",
 	"isGameTourist": false,
 	"condition": {
 		"search": {
