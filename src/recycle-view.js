@@ -159,6 +159,7 @@ Component({
       this.context.destroy()
       this.context = null
     }
+    if (this.timerId) clearTimeout(this.timerId)
   },
   /**
    * 组件的方法列表
@@ -184,13 +185,18 @@ Component({
       }
     },
     _scrollViewDidScroll: function(e, force) {
-      // console.log('scrollTop', e.detail.scrollTop-this._lastScrollTop, 'use time', Date.now() - this._lastRenderTime)
       // 监测白屏时间
       if (!e.detail.ignoreScroll) {
         this.triggerEvent('scroll', e.detail)
       }
       this.currentScrollTop = e.detail.scrollTop
-      if (this._isScrollingWithAnimation || !this.sizeArray.length) return
+      // 高度为0或者数据为空的情况, 不做任何渲染逻辑
+      if (!this._pos.height || !this.sizeArray.length) return
+      // 在scrollWithAnimation动画最后会触发一次scroll事件, 这次scroll事件必须要被忽略
+      if (this._isScrollingWithAnimation) {
+        this._isScrollingWithAnimation = false
+        return
+      }
       const pos = this._pos
       const that = this
       const scrollLeft = e.detail.scrollLeft
@@ -202,7 +208,7 @@ Component({
       }
       if (this.totalHeight - scrollTop - BOUNDARY_INTERVAL < this.data.height) {
         // scrollTop = this.totalHeight - this.data.height
-        isMatchBoundary = true
+        // isMatchBoundary = true
       }
       // 计算白屏时间
       const setViewportChangeInTimeout = (time) => {
@@ -227,7 +233,6 @@ Component({
             pos.maxTop = maxTop
             pos.afterHeight = afterHeight
             pos.ignoreBeginIndex = pos.ignoreEndIndex = -1
-            pos.defaultBeginIndex = pos.defaultEndIndex = -1
             that.page._recycleViewportChange({
               detail: {
                 data: that._pos,
@@ -235,9 +240,6 @@ Component({
               }
             })
           })
-          // console.log('【【【【setData avg use time is', this._totalTime/this._totalCount, this._whiteTotal)
-          this._whiteTotal = 0
-          this._whiteStart = 0
         }, time||1000);
       }
       if (!force) {
@@ -261,7 +263,7 @@ Component({
         }
         if ((scrollDistance > THROTTLE_DISTANCE || this._isScrollRendering)) {
           this._throttle = true
-          // console.log('【throttle because', scrollDistance, this._throttle)
+          this._log('【throttle because', scrollDistance, this._throttle)
           return
         }
       }
@@ -274,11 +276,15 @@ Component({
       //   return
       // }
       // 重新计算SHOW_SCREENS
-      if (isNextScrollExpose) {
-        SHOW_SCREENS = MAX_SHOW_SCREENS
-      } else if (distance && isFinite(distance)) {
-        const newShowScreen = Math.ceil(distance / pos.height)
-        SHOW_SCREENS = Math.min(MAX_SHOW_SCREENS, Math.max(newShowScreen, DEFAULT_SHOW_SCREENS))
+      if (!force) {
+        if (isNextScrollExpose) {
+          SHOW_SCREENS = MAX_SHOW_SCREENS
+        } else if (distance && isFinite(distance)) {
+          const newShowScreen = Math.ceil(distance / pos.height)
+          SHOW_SCREENS = Math.min(MAX_SHOW_SCREENS, Math.max(newShowScreen, DEFAULT_SHOW_SCREENS))
+        } else {
+          SHOW_SCREENS = DEFAULT_SHOW_SCREENS
+        }
       } else {
         SHOW_SCREENS = DEFAULT_SHOW_SCREENS
       }
@@ -287,10 +293,10 @@ Component({
       }
       pos.direction = force ? 0 : scrollTop - pos.top > 0 ? 1 : -1
       this._log('SHOW_SCREENS', SHOW_SCREENS, scrollTop, isNextScrollExpose)
-      this._calcViewportIndexes(scrollLeft, scrollTop, function (beginIndex, endIndex, minTop, afterHeight, maxTop, defaultBeginIndex, defaultEndIndex) {
+      this._calcViewportIndexes(scrollLeft, scrollTop, function (beginIndex, endIndex, minTop, afterHeight, maxTop) {
         that._log('scrollDistance', scrollDistance, 'usetime', usetime, 'indexes', beginIndex, endIndex)
         // 渲染的数据不变
-        if (!force && !isMatchBoundary && pos.beginIndex === beginIndex && pos.endIndex === endIndex &&
+        if (!force && pos.beginIndex === beginIndex && pos.endIndex === endIndex &&
             pos.minTop === minTop && pos.afterHeight === afterHeight) {
           that._log('------------is the same beginIndex and endIndex')
           return
@@ -302,7 +308,7 @@ Component({
           that._log('------------ignoreMinTop')
           return
         }
-        that._log('【check】before setData, old pos is', pos.minTop, pos.maxTop)
+        that._log('【check】before setData, old pos is', pos.minTop, pos.maxTop, minTop, maxTop)
         that._throttle = false
         pos.left = scrollLeft
         pos.top = scrollTop
@@ -312,8 +318,6 @@ Component({
         pos.maxTop = maxTop
         pos.afterHeight = afterHeight
         pos.ignoreBeginIndex = pos.ignoreEndIndex = -1
-        pos.defaultBeginIndex = defaultBeginIndex
-        pos.defaultEndIndex = defaultEndIndex
         pos.lastSetDataTime = Date.now() // 用于节流时间判断
         that._isScrollRendering = true
         const st = Date.now()
@@ -350,8 +354,8 @@ Component({
       const that = this
       const st = +new Date
       this._getBeforeSlotHeight(function(rect) {
-        const { beginIndex, endIndex, minTop, afterHeight, maxTop, defaultBeginIndex, defaultEndIndex } = that.__calcViewportIndexes(left, top)
-        cb && cb(beginIndex, endIndex, minTop, afterHeight, maxTop, defaultBeginIndex, defaultEndIndex)
+        const { beginIndex, endIndex, minTop, afterHeight, maxTop } = that.__calcViewportIndexes(left, top)
+        cb && cb(beginIndex, endIndex, minTop, afterHeight, maxTop)
       })
     },
     _getBeforeSlotHeight: function(cb) {
@@ -387,7 +391,7 @@ Component({
           const key = `${i}.${col}`
           // 找到sizeMap里面的最小值和最大值即可
           if (!sizeMap[key]) continue
-          for(let j = 0; j < sizeMap[key].length; j++) {
+          for (let j = 0; j < sizeMap[key].length; j++) {
             if (typeof beginIndex === 'undefined') {
               beginIndex = endIndex = sizeMap[key][j]
               continue
@@ -408,8 +412,8 @@ Component({
     __calcViewportIndexes: function (left, top) {
       if (!this.sizeArray.length) return
       const pos = this._pos;
-      (typeof left === 'undefined') && (left = pos.left)
-      (typeof top === 'undefined') && (top = pos.top)
+      (typeof left === 'undefined') && (left = pos.left);
+      (typeof top === 'undefined') && (top = pos.top);
       // top = Math.max(top, this.data.beforeSlotHeight)
       const beforeSlotHeight = this.data.beforeSlotHeight || 0
       let minTop = top - pos.height * (pos.direction == 1 ? 1 : pos.direction == -1 ? SHOW_SCREENS*2 : SHOW_SCREENS) - beforeSlotHeight
@@ -433,30 +437,8 @@ Component({
       // 计算白屏的默认占位的区域
       const whiteSpaceHeight = MAX_SHOW_SCREENS * pos.height*3 // max_show_screens的高度刚好合适？
       let maxTopFull = this.sizeArray[endIndex].beforeHeight + this.sizeArray[endIndex].height
-      let defaultIndexes = {beginIndex: -1, endIndex: -1}
       let minTopFull = this.sizeArray[beginIndex].beforeHeight
-      // 去掉占位的逻辑
-      // if (pos.direction === 1 && endIndex < this.sizeArray.length-1 && maxTopFull !== this.totalHeight) {
-      //   const defaultMaxTop = Math.min(maxTopFull + whiteSpaceHeight, this.totalHeight)
-      //   if (defaultMaxTop !== maxTopFull) {
-      //     defaultIndexes = this._getIndexes(maxTopFull, defaultMaxTop)
-      //     if (defaultIndexes.endIndex >= 0 && defaultIndexes.endIndex < this.sizeArray.length) {
-      //       maxTopFull = this.sizeArray[defaultIndexes.endIndex].beforeHeight + this.sizeArray[defaultIndexes.endIndex].height
-      //     }
-      //   }
-      // }
-      // if (pos.direction === -1 && beginIndex > 0) {
-      //   const defaultMinTop = Math.max(0, minTopFull - whiteSpaceHeight)
-      //   if (defaultMinTop !== minTopFull) {
-      //     defaultIndexes = this._getIndexes(defaultMinTop, minTopFull)
-      //     if (defaultIndexes.beginIndex >= 0 && defaultIndexes.beginIndex < this.sizeArray.length) {
-      //       minTopFull = this.sizeArray[defaultIndexes.beginIndex].beforeHeight
-      //     }
-      //   }
-      // }
-      const defaultBeginIndex = defaultIndexes.beginIndex
-      const defaultEndIndex = defaultIndexes.endIndex
-      this._log('defaultIndexes and indexes is', maxTop, defaultBeginIndex, defaultEndIndex, beginIndex, endIndex)
+
       // console.log('render indexes', beginIndex, endIndex)
       const afterHeight = this.totalHeight - maxTopFull
       return {
@@ -465,8 +447,6 @@ Component({
         minTop: minTopFull, // 取整, beforeHeight的距离
         afterHeight,
         maxTop,
-        defaultBeginIndex,
-        defaultEndIndex
       }
     },
     setItemSize: function(size) {
@@ -523,8 +503,7 @@ Component({
         left: that.data.scrollLeft || 0,
         top: that.data.scrollTop || 0,
         width: this.data.width,
-        height: Math.min(500, this.data.height), // 一个屏幕的高度
-        realHeight: this.data.height,
+        height: Math.max(500, this.data.height), // 一个屏幕的高度
         direction: 0
       }
       this.reRender(cb)
@@ -537,7 +516,7 @@ Component({
     },
     _heightChanged: function(newVal, oldVal) {
       if (!this._isReady) return newVal
-      this._pos.height = newVal
+      this._pos.height = Math.max(500, newVal)
       this.forceUpdate()
       return newVal
     },
@@ -548,6 +527,8 @@ Component({
       function newCb() {
         if (that._lastBeforeSlotHeight !== beforeSlotHeight || that._lastAfterSlotHeight !== afterSlotHeight) {
           that.setData({
+            hasBeforeSlotHeight: true,
+            hasAfterSlotHeight: true,
             beforeSlotHeight: beforeSlotHeight,
             afterSlotHeight: afterSlotHeight
           })
@@ -597,10 +578,12 @@ Component({
           pageObj[this._currentSetDataKey] = this._currentSetDataList
           this.page.setData(pageObj)
         }
-        // console.log('batch set height')
+        const saveScrollWithAnimation = this.data.scrollWithAnimation
         const st = +new Date
         this.setData(setObj, () => {
-          // console.log('batch set height use time', Date.now() - st)
+          this.setData({
+            scrollWithAnimation: saveScrollWithAnimation
+          })
         })
         delete this._currentSetDataKey
         delete this._currentSetDataList
@@ -610,7 +593,11 @@ Component({
       }
     },
     _scrollTopChanged: function(newVal, oldVal) {
-      if (newVal === oldVal && newVal === 0) return
+      // if (newVal === oldVal && newVal === 0) return
+      if (!this._isInitScrollTop && newVal === 0) {
+        this._isInitScrollTop = true
+        return
+      }
       this.currentScrollTop = newVal
       if (!this._isReady) {
         if (this._scrollTopTimerId) {
@@ -621,11 +608,33 @@ Component({
         }, 10)
         return
       }
+      this._isInitScrollTop = true
       this._scrollTopTimerId = null
-      this._lastScrollTop = oldVal
+      // this._lastScrollTop = oldVal
+      if (typeof this._lastScrollTop === 'undefined') {
+        this._lastScrollTop = this.data.scrollTop
+      }
+      // 滑动距离小于一个屏幕的高度, 直接setData
+      if (Math.abs(newVal - this._lastScrollTop) < this._pos.height) {
+        this.setData({
+          innerScrollTop: newVal
+        })
+        return
+      }
       if (this.data.scrollWithAnimation) {
         // 先setData把目标位置的数据补齐
-        this._innerScrollChangeWithAnimation(newVal)
+        this._scrollViewDidScroll({
+          detail: {
+            scrollLeft: this._pos.scrollLeft,
+            scrollTop: newVal,
+            ignoreScroll: true
+          }
+        }, true)
+        this._isScrollingWithAnimation = true
+        this.setData({
+          innerScrollTop: newVal
+        })
+        // this._innerScrollChangeWithAnimation(newVal, newVal - this._lastScrollTop > 0)
       } else {
         if (!this._isScrollTopChanged) {
           // 首次的值需要延后一点执行才能生效
@@ -643,7 +652,8 @@ Component({
       }
       return newVal
     },
-    _innerScrollChangeWithAnimation: function(newScrollTop) {
+    // 此方法废弃, 会闪烁一下
+    _innerScrollChangeWithAnimation: function(newScrollTop, dir) {
       this._isScrollingWithAnimation = true
       const that = this
       const pos = this._pos
@@ -675,34 +685,48 @@ Component({
       pos.ignoreEndIndex = ignoreIndex.endIndex
       pos.beginIndex = index.beginIndex
       pos.endIndex = index.endIndex
-      pos.defaultBeginIndex = pos.defaultEndIndex = -1
       const {beginIndex, endIndex, ignoreBeginIndex, ignoreEndIndex} = pos
       if (endIndex < 0) {
         this._isScrollingWithAnimation = false
         return
       }
       pos.minTop = this.sizeArray[beginIndex].beforeHeight
+      pos.maxTop = maxTop
       const innerAfterHeight = this.totalHeight - this.sizeArray[endIndex].beforeHeight - this.sizeArray[endIndex].height
-      pos.afterHeight = innerAfterHeight + (ignoreEndIndex != -1 ? this.sizeArray[ignoreEndIndex].beforeHeight - this.sizeArray[ignoreBeginIndex].beforeHeight : 0)
+      const ignoreHeight = (ignoreEndIndex != -1 ? this.sizeArray[ignoreEndIndex].beforeHeight - this.sizeArray[ignoreBeginIndex].beforeHeight : 0)
+      pos.afterHeight = innerAfterHeight + ignoreHeight
+      // scrollTo
+      // console.log('ignore height', ignoreHeight, dir, newScrollTop, pos.minTop, pos.maxTop)
+      const newCalScrollTop = newScrollTop + (dir ? -ignoreHeight : ignoreHeight)
+      this._tmpInnerScrollTop = newCalScrollTop
+      if (ignoreHeight) {
+        this._animateMockScrollTop = newCalScrollTop
+        this._animateCompleteTriggerScrollTop = newScrollTop
+      }
       this.page._recycleViewportChange({
         detail: {
           data: pos,
           id: that.id
         }
       }, function() {
-        that._isScrollingWithAnimation = false
-        pos.direction = 0
-        that._scrollViewDidScroll({
-          detail: {
-            scrollLeft: pos.left,
-            scrollTop: newScrollTop,
-            ignoreScroll: true
-          }
-        }, true)
+        // that._isScrollingWithAnimation = false
+        // pos.direction = 0
+        // that._scrollViewDidScroll({
+        //   detail: {
+        //     scrollLeft: pos.left,
+        //     scrollTop: newScrollTop,
+        //     ignoreScroll: true
+        //   }
+        // }, true)
       })
     },
     _scrollToIndexChanged: function(newVal, oldVal) {
-      if (newVal === oldVal && newVal === 0) return
+      // if (newVal === oldVal && newVal === 0) return
+      // 首次滚动到0的不执行
+      if (!this._isInitScrollToIndex && newVal === 0) {
+        this._isInitScrollToIndex = true
+        return
+      }
       if (!this._isReady) {
         if (this._scrollToIndexTimerId) {
           clearTimeout(this._scrollToIndexTimerId)
@@ -712,18 +736,37 @@ Component({
         }, 10)
         return
       }
+      this._isInitScrollToIndex = true
       this._scrollToIndexTimerId = null
       if (typeof this._lastScrollTop === 'undefined') {
         this._lastScrollTop = this.data.scrollTop
       }
       const rect = this.boundingClientRect(newVal)
       if (!rect) return
+        // console.log('rect top', rect, this.data.beforeSlotHeight)
       const calScrollTop = rect.top + (this.data.beforeSlotHeight || 0)
       this.currentScrollTop = calScrollTop
+      if (Math.abs(calScrollTop - this._lastScrollTop) < this._pos.height) {
+        this.setData({
+          innerScrollTop: calScrollTop
+        })
+        return
+      }
       if (this.data.scrollWithAnimation) {
         // 有动画效果的话, 需要和scrollTopChange类似的处理方式
         // 获取newVal对应的id的clientRect
-        this._innerScrollChangeWithAnimation(calScrollTop)
+        this._scrollViewDidScroll({
+          detail: {
+            scrollLeft: this._pos.scrollLeft,
+            scrollTop: calScrollTop,
+            ignoreScroll: true
+          }
+        }, true)
+        this._isScrollingWithAnimation = true
+        this.setData({
+          innerScrollTop: calScrollTop
+        })
+        // this._innerScrollChangeWithAnimation(calScrollTop, calScrollTop - this._lastScrollTop > 0)
       } else {
         if (!this._isScrollToIndexChanged) {
           setTimeout(() => {
@@ -751,6 +794,24 @@ Component({
         width: this.sizeArray[idx].width,
         height: this.sizeArray[idx].height
       }
+    },
+    // 获取当前出现在屏幕内数据项， 返回数据项组成的数组
+    // 参数inViewportPx表示当数据项至少有多少像素出现在屏幕内才算是出现在屏幕内，默认是1
+    getIndexesInViewport: function(inViewportPx) {
+      inViewportPx || (inViewportPx = 1)
+      const scrollTop = this.currentScrollTop
+      let minTop = scrollTop + inViewportPx
+      if (minTop < 0) minTop = 0
+      let maxTop = scrollTop + this.data.height - inViewportPx
+      if (maxTop > this.totalHeight) maxTop = this.totalHeight
+      const indexes = []
+      for (let i = 0; i < this.sizeArray.length; i++) {
+        if (this.sizeArray[i].beforeHeight + this.sizeArray[i].height >= minTop && this.sizeArray[i].beforeHeight <= maxTop) {
+          indexes.push(i)
+        }
+        if (this.sizeArray[i].beforeHeight > maxTop) break
+      }
+      return indexes
     }
   }
 })

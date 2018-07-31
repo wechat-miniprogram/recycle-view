@@ -88,6 +88,7 @@ npm install --save miniprogram-recycle-view
    | enable-back-to-top    | Boolean | 否   | 默认为false，同scroll-view同名字段        |
    | scroll-top            | Number  | 否   | 默认为false，同scroll-view同名字段        |
    | scroll-to-index       | Number  | 否   | 设置滚动到长列表的项                      |
+   | placeholder-image     | String  | 否   | 默认占位背景图片，在渲染不及时的时候显示，不建议使用大图作为占位。建议传入SVG的Base64格式，可使用[工具](https://codepen.io/jakob-e/pen/doMoML)将SVG代码转为Base64格式。支持SVG中设置rpx。 |
    | scroll-with-animation | Boolean | 否   | 默认为false，同scroll-view的同名字段      |
    | lower-threshold       | Number  | 否   | 默认为false，同scroll-view同名字段        |
    | upper-threshold       | Number  | 否   | 默认为false，同scroll-view同名字段        |
@@ -124,9 +125,8 @@ npm install --save miniprogram-recycle-view
                height: 182
              }
            })
-           ctx.appendList(newList)
-           // ctx.updateList(beginIndex, list)
-           // ctx.deleteList(beginIndex, count)
+           ctx.append(newList)
+           // ctx.update(beginIndex, list)
            // ctx.destroy()
        },
        itemSizeFunc: function (item, idx) {
@@ -145,28 +145,30 @@ npm install --save miniprogram-recycle-view
    | id       | String          | 对应 recycle-view 的 id 属性的值                                  |
    | dataKey  | String          | 对应 recycle-item 的 wx:for 属性设置的绑定变量名                   |
    | page     | Page/Component  | recycle-view 所在的页面或者组件的实例，页面或者组件内可以直接传 this |
-   | itemSize | Object/Function | 此参数用来生成 recycle-item 的宽和高，前面提到过，要知道当前需要渲染哪些 item，必须知道 item 的宽高才能进行计算<br />Object 必须包含{ width, height }两个属性，Function 的话接收 item, index 这2个参数，返回一个包含{ width, height }的 Object |
+   | itemSize | Object/Function | 此参数用来生成recycle-item的宽和高，前面提到过，要知道当前需要渲染哪些item，必须知道item的宽高才能进行计算<br />Object必须包含{width, height}两个属性，Function的话接收item, index这2个参数，返回一个包含{width, height}的Object<br />itemSize如果是函数，函数里面`this`指向RecycleContext<br />如果样式使用了rpx，可以通过transformRpx来转化为px。 |
 
    RecycleContext 对象提供的方法有：
 
-   | 方法                  | 参数                          | 说明                                                                                   |
-   | --------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
-   | appendList            | list, callback               | 在当前的长列表数据上追加 list 数据，callback 是渲染完成的回调函数                           |
-   | append                | list, callback               | 同 append 函数                                                                          |
-   | splice                | begin, count, list, callback | 新增/删除长列表数据，参数同 Array 的[splice](http://www.w3school.com.cn/js/jsref_splice.asp)函数，可用来替代 deleteList 和 updateList 这2个操作，callback 是渲染完成的回调函数 |
-   | deleteList            | begin, count, callback       | 删除长列表数据，begin 是开始删除的数据下标，count 是删除的数量，callback 是渲染完成的回调函数 |
-   | updateList            | begin, list, callback        | 更新长列表数据。begin 是开始更新的数据下标，list 是新的列表数据，callback 是渲染完成的回调函数 |
-   | destroy               | 无                           | 销毁 RecycleContext 对象，在 recycle-view 销毁的时候调用此方法                             |
-   | forceUpdate           | callback, reinitSlot         | 重新渲染 recycle-view。callback 是渲染完成的回调函数，当 before 和 after 这2个 slot 的高度发生变化时候调用此函数，reinitSlot 设置为 true。当 item 的宽高发生变化的时候也可以调用此方法。 |
-   | getBoundingClientRect | index                        | 获取某个数据项的在长列表中的位置，返回{ left, top, width, height }的 Object。                |
-   | getScrollTop          | 无                           | 获取长列表的当前的滚动位置。                                                                |
+   | 方法                  | 参数                         | 说明                                                         |
+   | --------------------- | ---------------------------- | ------------------------------------------------------------ |
+   | append                | list, callback               | 在当前的长列表数据上追加list数据，callback是渲染完成的回调函数 |
+   | splice                | begin, count, list, callback | 插入/删除长列表数据，参数同Array的[splice](http://www.w3school.com.cn/js/jsref_splice.asp)函数，callback是渲染完成的回调函数 |
+   | update                | begin, list, callback        | 更新长列表的数据，从索引参数begin开始，更新为参数list，参数callback同splice。 |
+   | destroy               | 无                           | 销毁RecycleContext对象，在recycle-view销毁的时候调用此方法   |
+   | forceUpdate           | callback, reinitSlot         | 重新渲染recycle-view。callback是渲染完成的回调函数，当before和after这2个slot的高度发生变化时候调用此函数，reinitSlot设置为true。当item的宽高发生变化的时候也需要调用此方法。 |
+   | getBoundingClientRect | index                        | 获取某个数据项的在长列表中的位置，返回{left, top, width, height}的Object。 |
+   | getScrollTop          | 无                           | 获取长列表的当前的滚动位置。                                 |
+   | transformRpx          | rpx                          | 将rpx转化为px，返回转化后的px整数。itemSize返回的宽高单位是px，可以在这里调用此函数将rpx转化为px，参数是Number，例如ctx.transformRpx(140)，返回70。 |
+   | getViewportItems      | inViewportPx                 | 获取在视窗内的数据项，用于判断某个项是否出现在视窗内。用于曝光数据上报，菜品和类别的联动效果实现。参数inViewportPx表示距离屏幕多少像素为出现在屏幕内，可以为负值。 |
 
    ## Tips
 
-   1. recycle-view 设置 batch 属性的值必须为{{batchSetRecycleData}}。
-   2. `createRecycleContext(options)`的id参数必须和 recycle-view 的 id 属性一致，dataKey 参数必须和 recycle-item 的 wx:for 绑定的变量名一致。
-   3. 不要通过 setData 设置 recycle-item 的 wx:for 的变量值，建议 recycle-item 设置 wx:key 属性。
-   4. 页面JS必须定义 recycle-view 中的 item-size 属性指定的函数，该函数对于同一行的 recycle-item，返回的高度必须一样。另外，该函数返回的宽和高必须和 recycle-item 的真实宽高一致，这样显示才正常。
-   5. 如果长列表里面包含图片，必须保证图片资源是有 HTTP 缓存的，否则在滚动过程中会发起很多的图片请求。
-   6. 有些数据不一定会渲染出来，使用 wx.createSelectorQuery 的时候有可能会失效，可使用 RecycleContext 的 getBoundingClientRect 来替代。
+   1. recycle-view设置batch属性的值必须为{{batchSetRecycleData}}。
+   2. recycle-item的宽高必须和itemSize设置的宽高一致，否则会出现跳动的bug。
+   3. recycle-view设置的高度必须和其style里面设置的样式一致。
+   4. `createRecycleContext(options)`的id参数必须和recycle-view的id属性一致，dataKey参数必须和recycle-item的wx:for绑定的变量名一致。
+   5. 不能在recycle-item里面使用wx:for的index变量作为索引值的，请使用{{item.\_\_index\_\_}}替代。
+   6. 不要通过setData设置recycle-item的wx:for的变量值，建议recycle-item设置wx:key属性。
+   7. 如果长列表里面包含图片，必须保证图片资源是有HTTP缓存的，否则在滚动过程中会发起很多的图片请求。
+   8. 有些数据不一定会渲染出来，使用wx.createSelectorQuery的时候有可能会失效，可使用RecycleContext的getBoundingClientRect来替代。
 

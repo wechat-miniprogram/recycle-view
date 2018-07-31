@@ -56,7 +56,7 @@ RecycleContext.prototype._forceRerender = function(id, cb) {
   const page = this.page
   const sizeData = this._recalculateSize(recycleData[id].list)
   recycleData[id].sizeMap = sizeData.map
-  // console.log('size is', sizeData.map, 'totalHeight', sizeData.totalHeight)
+  // console.log('size is', sizeData.array, sizeData.map, 'totalHeight', sizeData.totalHeight)
   // console.log('sizeArray', sizeData.array)
   recycleData[id].sizeArray = sizeData.array
   // 触发强制渲染
@@ -80,10 +80,13 @@ RecycleContext.prototype._recalculateSize = function (list) {
   let sizeArray = []
   // 把整个页面拆分成200*200的很多个方格, 判断每个数据落在哪个方格上
   for (let i = 0; i < list.length; i++) {
+    if (typeof list[i].__index__ === 'undefined') {
+      list[i].__index__ = i
+    }
     // 获取到每一项的宽和高
     if (funcExist) {
       // 必须保证返回的每一行的高度一样
-      itemSize = func&&func.call(this.page, list[i], i)
+      itemSize = func&&func.call(this, list[i], i)
     } else {
       itemSize = {
         width: func.width,
@@ -101,12 +104,24 @@ RecycleContext.prototype._recalculateSize = function (list) {
         line += parseInt((offsetTop - RECT_SIZE*line)/RECT_SIZE)
       }
       column = 0
+      // 新起一行的元素, beforeHeight是前一个元素的beforeHeight和height相加
+      if (i === 0) {
+        itemSize.beforeHeight = 0
+      } else {
+        const prevItemSize = sizeArray[sizeArray.length - 2]
+        itemSize.beforeHeight = prevItemSize.beforeHeight + prevItemSize.height
+      }
     } else {
       if (offsetLeft >= RECT_SIZE * (column+1)) {
         column++
       }
+      if (i === 0) {
+        itemSize.beforeHeight = 0
+      } else {
+        // 同一行的元素, beforeHeight和前面一个元素的beforeHeight一样
+        itemSize.beforeHeight = sizeArray[sizeArray.length - 2].beforeHeight
+      }
     }
-    itemSize.beforeHeight = offsetTop
     const key = `${line}.${column}`
     sizeMap[key] || (sizeMap[key] = [])
     sizeMap[key].push(i)
@@ -140,11 +155,12 @@ RecycleContext.prototype.updateList = function(beginIndex, list, cb) {
   }
   const len = recycleData[id].list.length
   for (let i = 0; i < list.length && beginIndex < len; i++) {
-    recycleData[id].list[beginIndex++] = list[beginIndex++]
+    recycleData[id].list[beginIndex++] = list[i]
   }
   this._forceRerender(id, cb)
   return this
 }
+RecycleContext.prototype.update = RecycleContext.prototype.updateList;
 RecycleContext.prototype.splice = function(begin, deleteCount, appendList, cb) {
   this.checkComp()
   const id = this.id
@@ -174,38 +190,6 @@ RecycleContext.prototype.splice = function(begin, deleteCount, appendList, cb) {
     } else {
       list.splice(begin, deleteCount)
     }
-    // 直接使用Array.splice即可
-    /*
-    begin < 0 && (begin = 0)
-    deleteCount < 0 && (deleteCount = 0)
-    begin + deleteCount > list.length && (deleteCount = list.length - begin)
-    if (!appendList || !appendList.length) {
-      if (deleteCount == 0) return
-      if (begin + deleteCount >= list.length) {
-        list.length = begin
-      } else {
-        for (let i = 0; i < deleteCount; i++) {
-          list[begin + i] = list[begin + deleteCount + i]
-        }
-        list.length = list.length - deleteCount
-      }
-    } else {
-      const appendCount = appendList.length
-      if (deleteCount >= appendCount) {
-        for (let i = 0; i < appendCount; i++) {
-          list[begin + i] = appendList[i]
-        }
-      } else {
-        for (let i = 0; i < appendCount; i++) {
-          if (i >= deleteCount && i < list.length) {
-            list[begin + appendCount - deleteCount + i] = list[begin + i]
-          }
-          list[begin + i] = appendList[i]
-        }
-      }
-      list.length = begin + appendList.length
-    }
-    */
   }
   this._forceRerender(id, cb)
   return this
@@ -269,6 +253,17 @@ RecycleContext.prototype.getScrollTop = function() {
 }
 // 将px转化为rpx
 RecycleContext.prototype.transformRpx = RecycleContext.transformRpx = function(str, addPxSuffix) {
-  return transformRpx.transformRpx(str, addPxSuffix)
+  if (typeof str === 'number') str = str + 'rpx'
+  return parseFloat(transformRpx.transformRpx(str, addPxSuffix))
+}
+RecycleContext.prototype.getViewportItems = function(inViewportPx) {
+  const indexes = this.comp.getIndexesInViewport(inViewportPx)
+  if (indexes.length <= 0) return []
+  const viewportItems = []
+  const list = recycleData[this.id].list
+  for (let i = 0; i < indexes.length; i++) {
+    viewportItems.push(list[indexes[i]])
+  }
+  return viewportItems
 }
 module.exports = RecycleContext

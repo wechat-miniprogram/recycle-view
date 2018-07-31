@@ -1,3 +1,4 @@
+// components/recycle-item/recycle-item.js
 Component({
   relations: {
     './recycle-view': {
