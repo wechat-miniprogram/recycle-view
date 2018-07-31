@@ -36,7 +36,7 @@ Page({
       }
       // 构造270份数据
       var item = item.goods[0]
-      for (var i = 0; i < 20; i++) {
+      for (var i = 0; i < 270; i++) {
         var newItem = Object.assign({}, item)
         newData.push(newItem)
       }
@@ -104,14 +104,14 @@ Page({
   scrollToLower: function(e) {
     // 延迟1s，模拟网络请求
     if (this.isScrollToLower) return
-    console.log('【【【【trigger scrollToLower')
+    // console.log('【【【【trigger scrollToLower')
     this.isScrollToLower = true
     setTimeout(() => {
-      console.log('【【【【exec scrollToLower')
-      const newList = this.genData()
-      this.ctx.append(newList, () => {
-        this.isScrollToLower = false
-      })
+      // console.log('【【【【exec scrollToLower')
+      // const newList = this.genData()
+      // this.ctx.append(newList, () => {
+      //   this.isScrollToLower = false
+      // })
     }, 1000)
   },
   scrollTo2000: function (e) {
