@@ -479,7 +479,7 @@ Component({
           that._scrollViewDidScroll({
             detail: {
               scrollLeft: that._pos.left,
-              scrollTop: that._pos.top,
+              scrollTop: that.currentScrollTop || that.data.scrollTop || 0, // 改成当前位置
               ignoreScroll: true,
               cb: cb
             }

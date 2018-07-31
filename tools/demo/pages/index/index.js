@@ -104,9 +104,10 @@ Page({
   scrollToLower: function(e) {
     // 延迟1s，模拟网络请求
     if (this.isScrollToLower) return
-    console.log('scrollToLower')
+    console.log('【【【【trigger scrollToLower')
     this.isScrollToLower = true
     setTimeout(() => {
+      console.log('【【【【exec scrollToLower')
       const newList = this.genData()
       this.ctx.append(newList, () => {
         this.isScrollToLower = false
