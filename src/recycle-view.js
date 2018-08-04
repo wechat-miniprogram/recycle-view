@@ -17,7 +17,7 @@ Component({
     multipleSlots: true // 在组件定义时的选项中启用多slot支持
   },
   relations: {
-    './recycle-item': {
+    '../recycle-item/recycle-item': {
       type: 'child', // 关联的目标节点应为子节点
       linked: function (target) {
         // 检查第一个的尺寸就好了吧
@@ -138,7 +138,7 @@ Component({
   },
   ready: function() {
     this._initPosition(() => {
-      this._isReady = true
+      this._isReady = true // DOM结构ready了
       // 有一个更新的timer在了
       if (this._updateTimerId) return
 
@@ -184,14 +184,40 @@ Component({
         this._lastScrollTop = this._pos && this._pos.top || 0
       }
     },
+    _clearList: function(cb) {
+      this.currentScrollTop = 0
+      this._lastScrollTop = 0
+      const pos = this._pos
+      pos.beginIndex = this._pos.endIndex = -1
+      pos.afterHeight = pos.minTop = pos.maxTop = 0
+      this.page._recycleViewportChange({
+        detail: {
+          data: pos,
+          id: this.id
+        }
+      }, cb)
+    },
+    // 判断RecycleContext是否Ready
+    _isValid: function() {
+      return this.page && this.context && this.context.isDataReady
+    },
     _scrollViewDidScroll: function(e, force) {
+      // 如果RecycleContext还没有初始化, 不做任何事情
+      if (!this._isValid()) {
+        return;
+      }
       // 监测白屏时间
       if (!e.detail.ignoreScroll) {
         this.triggerEvent('scroll', e.detail)
       }
       this.currentScrollTop = e.detail.scrollTop
-      // 高度为0或者数据为空的情况, 不做任何渲染逻辑
-      if (!this._pos.height || !this.sizeArray.length) return
+      // 高度为0的情况, 不做任何渲染逻辑
+      if (!this._pos.height || !this.sizeArray.length) {
+        // 没有任何数据的情况下, 直接清理所有的状态
+        this._clearList(e.detail.cb)
+        return
+      }
+
       // 在scrollWithAnimation动画最后会触发一次scroll事件, 这次scroll事件必须要被忽略
       if (this._isScrollingWithAnimation) {
         this._isScrollingWithAnimation = false
@@ -218,6 +244,16 @@ Component({
 
         this.timerId = setTimeout(() => {
           this._pos.direction = 0
+          // 如果RecycleContext还没有初始化, 不做任何事情
+          if (!this._isValid()) {
+            return;
+          }
+          // 高度为0的情况, 不做任何渲染逻辑
+          if (!this._pos.height || !this.sizeArray.length) {
+            // 没有任何数据的情况下, 直接清理所有的状态
+            this._clearList(e.detail.cb)
+            return
+          }
           SHOW_SCREENS = DEFAULT_SHOW_SCREENS
           this._calcViewportIndexes(scrollLeft, scrollTop, function (beginIndex, endIndex, minTop, afterHeight, maxTop) {
             // 渲染的数据不变
@@ -291,6 +327,7 @@ Component({
       if (force && this.timerId) {
         clearTimeout(this.timerId)
       }
+      // SHOW_SCREENS = DEFAULT_SHOW_SCREENS + 1 // 固定4屏幕
       pos.direction = force ? 0 : scrollTop - pos.top > 0 ? 1 : -1
       this._log('SHOW_SCREENS', SHOW_SCREENS, scrollTop, isNextScrollExpose)
       this._calcViewportIndexes(scrollLeft, scrollTop, function (beginIndex, endIndex, minTop, afterHeight, maxTop) {
@@ -314,6 +351,7 @@ Component({
         pos.top = scrollTop
         pos.beginIndex = beginIndex
         pos.endIndex = endIndex
+        // console.log('render indexes', endIndex - beginIndex + 1, endIndex, beginIndex)
         pos.minTop = minTop
         pos.maxTop = maxTop
         pos.afterHeight = afterHeight
@@ -409,6 +447,13 @@ Component({
         endIndex: endIndex
       }
     },
+    _isIndexValid: function(beginIndex, endIndex) {
+      if (typeof beginIndex === 'undefined' || beginIndex == -1 ||
+        typeof endIndex === 'undefined' || endIndex == -1 || endIndex >= this.sizeArray.length) {
+        return false
+      }
+      return true;
+    },
     __calcViewportIndexes: function (left, top) {
       if (!this.sizeArray.length) return
       const pos = this._pos;
@@ -433,7 +478,20 @@ Component({
         minTop = 0
       }
       // 计算落在minTop和maxTop之间的方格有哪些
-      const {beginIndex, endIndex} = this._getIndexes(minTop, maxTop)
+      let {beginIndex, endIndex} = this._getIndexes(minTop, maxTop)
+      if (endIndex >= this.sizeArray.length) {
+        endIndex = this.sizeArray.length - 1;
+      }
+      // 校验一下beginIndex和endIndex的有效性,
+      if (!this._isIndexValid(beginIndex, endIndex)) {
+        return {
+          beginIndex: -1,
+          endIndex: -1,
+          minTop: 0,
+          afterHeight: 0,
+          maxTop: 0
+        }
+      }
       // 计算白屏的默认占位的区域
       const whiteSpaceHeight = MAX_SHOW_SCREENS * pos.height*3 // max_show_screens的高度刚好合适？
       let maxTopFull = this.sizeArray[endIndex].beforeHeight + this.sizeArray[endIndex].height
@@ -479,7 +537,7 @@ Component({
           that._scrollViewDidScroll({
             detail: {
               scrollLeft: that._pos.left,
-              scrollTop: that.currentScrollTop || that.data.scrollTop || 0, // 改成当前位置
+              scrollTop: that.currentScrollTop || that.data.scrollTop || 0,
               ignoreScroll: true,
               cb: cb
             }
@@ -490,7 +548,7 @@ Component({
         this._scrollViewDidScroll({
           detail: {
             scrollLeft: that._pos.left,
-            scrollTop: that.currentScrollTop || that.data.scrollTop || 0, // 改成当前位置
+            scrollTop: that.currentScrollTop || that.data.scrollTop || 0,
             ignoreScroll: true,
             cb: cb
           }

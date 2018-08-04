@@ -5,34 +5,22 @@ module.exports = function _recycleViewportChange(e, cb) {
   // console.log('data change transfer use time', Date.now() - e.detail.timeStamp)
   var newList = []
   var item = recycleData[detail.id]
-  const forKey = item.forKey
+  // 边界值判断, 避免造成异常, 假设先调用了createRecycleContext, 然后再延迟2s调用append插入数据的情况
+  if (!item || !item.list) return
   var dataList = item.list
   var pos = detail.data
   var beginIndex = pos.beginIndex
   var endIndex = pos.endIndex
   item.pos = pos
   // 加ignoreBeginIndex和ignoreEndIndex
-  let i = -1
-  // 加默认数据看下是否有效果
-  if (pos.direction === -1 && pos.defaultBeginIndex && pos.defaultEndIndex &&
-      pos.defaultBeginIndex !== -1 && pos.defaultEndIndex !== -1) {
-    for (i = pos.defaultBeginIndex; i <= pos.defaultEndIndex && i < dataList.length; i++) {
-      const defaultObj = {__default: 1}
-      item.forKey && (defaultObj[item.forKey] = dataList[i][item.forKey])
-      newList.push(defaultObj)
-    }
-  }
-  for (i = beginIndex; i < dataList.length && i <= endIndex; i++) {
-    if (i >= pos.ignoreBeginIndex && i <= pos.ignoreEndIndex)
-      continue
-    newList.push(dataList[i])
-  }
-  if (pos.direction === 1 && pos.defaultBeginIndex && pos.defaultEndIndex &&
-      pos.defaultBeginIndex !== -1 && pos.defaultEndIndex !== -1) {
-    for (i = pos.defaultBeginIndex; i <= pos.defaultEndIndex && i < dataList.length; i++) {
-      const defaultObj = {__default: 1}
-      item.forKey && (defaultObj[item.forKey] = dataList[i][item.forKey])
-      newList.push(defaultObj)
+  if (typeof beginIndex === 'undefined' || beginIndex == -1 || typeof endIndex === 'undefined' || endIndex == -1) {
+    newList = []
+  } else {
+    let i = -1
+    for (i = beginIndex; i < dataList.length && i <= endIndex; i++) {
+      if (i >= pos.ignoreBeginIndex && i <= pos.ignoreEndIndex)
+        continue
+      newList.push(dataList[i])
     }
   }
   var obj = {

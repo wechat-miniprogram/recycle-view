@@ -4,7 +4,7 @@ const transformRpx = require('./transformRpx.js')
 
 const RECT_SIZE = 200
 
-function RecycleContext({id, dataKey, page, itemSize, forKey}) {
+function RecycleContext({id, dataKey, page, itemSize}) {
   if (!id || !dataKey || !page || !itemSize) {
     throw `parameter id, dataKey, page, itemSize is required`
   }
@@ -16,7 +16,6 @@ function RecycleContext({id, dataKey, page, itemSize, forKey}) {
   }
   this.id = id
   this.dataKey = dataKey
-  this.forKey = forKey
   this.page = page
   page._recycleViewportChange = recycleViewportChangeFunc
   this.comp = page.selectComponent('#' + id)
@@ -42,8 +41,7 @@ RecycleContext.prototype.appendList = function(list, cb) {
       id: id,
       list: list,
       sizeMap: {},
-      sizeArray: [],
-      forKey: this.forKey
+      sizeArray: []
     }
   } else {
     recycleData[id].dataKey = dataKey
@@ -53,6 +51,7 @@ RecycleContext.prototype.appendList = function(list, cb) {
   return this
 }
 RecycleContext.prototype._forceRerender = function(id, cb) {
+  this.isDataReady = true; // 首次调用说明数据已经ready了
   const page = this.page
   const sizeData = this._recalculateSize(recycleData[id].list)
   recycleData[id].sizeMap = sizeData.map
@@ -186,7 +185,7 @@ RecycleContext.prototype.splice = function(begin, deleteCount, appendList, cb) {
     recycleData[id].dataKey = dataKey
     const list = recycleData[id].list
     if (appendList && appendList.length) {
-      list.splice(begin, deleteCount, appendList)
+      list.splice(begin, deleteCount, ...appendList)
     } else {
       list.splice(begin, deleteCount)
     }
