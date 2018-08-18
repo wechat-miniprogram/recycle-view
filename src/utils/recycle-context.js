@@ -4,31 +4,69 @@ const transformRpx = require('./transformRpx.js')
 
 const RECT_SIZE = 200
 
-function RecycleContext({id, dataKey, page, itemSize}) {
+function RecycleContext({id, dataKey, page, itemSize, useInPage, placeholderClass}) {
   if (!id || !dataKey || !page || !itemSize) {
     throw `parameter id, dataKey, page, itemSize is required`
   }
   if (typeof itemSize !== 'function' && typeof itemSize !== 'object') {
     throw 'parameter itemSize must be function or object with key width and height'
   }
-  if (typeof itemSize === 'object' && (!itemSize.width || !itemSize.height)) {
+  if (typeof itemSize === 'object' && (!itemSize.width || !itemSize.height) &&
+      (!itemSize.props || !itemSize.queryClass || !itemSize.dataKey)) {
     throw 'parameter itemSize must be function or object with key width and height'
   }
   this.id = id
   this.dataKey = dataKey
   this.page = page
+  this.placeholderClass = placeholderClass;
   page._recycleViewportChange = recycleViewportChangeFunc
   this.comp = page.selectComponent('#' + id)
   this.itemSize = itemSize
-  if (!this.comp) {
-    throw `<recycle-view> with id ${id} not found`
+  this.itemSizeOpt = itemSize;
+  // if (!this.comp) {
+    // throw `<recycle-view> with id ${id} not found`
+  // }
+  this.useInPage = useInPage || false;
+  if (this.comp) {
+    this.comp.context = this
+    this.comp.setPage(page)
+    this.comp.setUseInPage(this.useInPage);
   }
-  this.comp.context = this
-  this.comp.setPage(page)
+  if (this.useInPage) {
+    this.oldPageScroll = this.page.onPageScroll;
+    // 重写onPageScroll事件
+    this.page.onPageScroll = (e) => {
+      // this.checkComp();
+      this.comp && this.comp._scrollViewDidScroll({
+        detail: {
+          scrollLeft: 0,
+          scrollTop: e.scrollTop
+        }
+      });
+      this.oldPageScroll.apply(this.page, arguments);
+    }
+    this.oldReachBottom = this.page.onReachBottom;
+    this.page.onReachBottom = (e) => {
+      this.comp && this.comp.triggerEvent('scrolltolower', {});
+      this.oldReachBottom.apply(this.page, arguments);
+    }
+    this.oldPullDownRefresh = this.page.onPullDownRefresh;
+    this.page.onPullDownRefresh = (e) => {
+      this.comp && this.comp.triggerEvent('scrolltoupper', {});
+      this.oldPullDownRefresh.apply(this.page, arguments);
+    }
+  }
 }
 RecycleContext.prototype.checkComp = function() {
   if (!this.comp) {
-    throw `the recycle-view correspond to this context is detached, pls create another RecycleContext`
+    this.comp = this.page.selectComponent('#' + id)
+    if (this.comp) {
+      this.comp.setUseInPage(this.useInPage);
+      this.comp.context = this
+      this.comp.setPage(page)
+    } else {
+      throw `the recycle-view correspond to this context is detached, pls create another RecycleContext`  
+    }
   }
 }
 RecycleContext.prototype.appendList = function(list, cb) {
@@ -53,6 +91,59 @@ RecycleContext.prototype.appendList = function(list, cb) {
 RecycleContext.prototype._forceRerender = function(id, cb) {
   this.isDataReady = true; // 首次调用说明数据已经ready了
   const page = this.page
+  // 动态计算高度并缓存
+  const that = this;
+  let allrect = null;
+  let parentRect = null;
+  let count = 0;
+
+  function setPlaceholderImage() {
+    if (!allrect || !parentRect) return;
+    const svgRects = []
+    for (let i = 0; i < count; i++) {
+      svgRects.push({
+        left: allrect[i].left - parentRect.left,
+        top: allrect[i].top - parentRect.top,
+        width: allrect[i].width,
+        height: allrect[i].height
+      })
+    }
+    that.comp.setPlaceholderImage(svgRects, {
+      width: parentRect.width,
+      height: parentRect.height
+    });
+  }
+  function newcb() {
+    cb && cb();
+    // 计算placeholder, 只有在动态计算高度的时候才支持
+    if (that.autoCalculateSize && that.placeholderClass) {
+      const newQueryClass = [];
+      that.placeholderClass.forEach(item => {
+        newQueryClass.push(`.${that.itemSizeOpt.queryClass} .` + item)
+      });
+      // newQueryClass.push(`.` + that.itemSizeOpt.queryClass)
+      count = newQueryClass.length;
+      wx.createSelectorQuery().selectAll(newQueryClass.join(',')).boundingClientRect(rect => {
+        if (rect.length < count) return;
+        allrect = rect;
+        setPlaceholderImage();
+      }).exec();
+      wx.createSelectorQuery().select(`.` + that.itemSizeOpt.queryClass).boundingClientRect(rect => {
+        parentRect = rect;
+        setPlaceholderImage();
+      }).exec();
+    }
+  }
+  if (Object.prototype.toString.call(this.itemSize) === '[object Object]' &&
+        this.itemSize && !this.itemSize.width) {
+    this._recalculateSizeByProp(recycleData[id].list, function(sizeData) {
+      recycleData[id].sizeMap = sizeData.map
+      recycleData[id].sizeArray = sizeData.array
+      // 触发强制渲染
+      that.comp.forceUpdate(newcb)
+    })
+    return;
+  }
   const sizeData = this._recalculateSize(recycleData[id].list)
   recycleData[id].sizeMap = sizeData.map
   // console.log('size is', sizeData.array, sizeData.map, 'totalHeight', sizeData.totalHeight)
@@ -60,6 +151,150 @@ RecycleContext.prototype._forceRerender = function(id, cb) {
   recycleData[id].sizeArray = sizeData.array
   // 触发强制渲染
   this.comp.forceUpdate(cb)
+}
+function getValue(item, key) {
+  if (!key) return item;
+  if (typeof item[key] !== 'undefined') return item[key]
+  const keyItems = key.split('.');
+  for (let i = 0; i < keyItems.length; i++) {
+    item = item[keyItems[i]]
+    if (typeof item === 'undefined' || (typeof item === 'object' && !item)) {
+      return;
+    }
+  }
+  return item;
+}
+function getValues(item, keys) {
+  if (Object.prototype.toString.call(keys) !== '[object Array]') {
+    keys = [keys];
+  }
+  const vals = {}
+  for (let i = 0; i < keys.length; i++) {
+    vals[keys[i]] = getValue(item, keys[i])
+  }
+  return vals;
+}
+function isArray(arr) {
+  return Object.prototype.toString.call(arr) === '[object Array]'
+}
+function isSamePureValue(item1, item2) {
+  if (typeof item1 !== typeof item2) return false;
+  if (isArray(item1) && isArray(item2)) {
+    if (item1.length !== item2.length) return false;
+    for (let i = 0; i < item1.length; i++) {
+      if (item1[i] !== item2[i]) return false;
+    }
+    return true;
+  }
+  return item1 === item2;
+}
+function isSameValue(item1, item2, keys) {
+  if (!isArray(keys)) {
+    keys = [keys];
+  }
+  for (let i = 0; i < keys.length; i++) {
+    if (!isSamePureValue(getValue(item1, keys[i]), getValue(item2, keys[i])))
+      return false;
+  }
+  return true;
+}
+RecycleContext.prototype._recalculateSizeByProp = function(list, cb) {
+  const itemSize = this.itemSizeOpt;
+  let propValueMap = [];
+  const calcNewItems = [];
+  const needCalcPropIndex = [];
+  if (itemSize.cacheKey) {
+    propValueMap = wx.getStorageSync(itemSize.cacheKey) || []
+    console.log('[recycle-view] get itemSize from cache', propValueMap);
+  }
+  this.autoCalculateSize = true;
+  const item2PropValueMap = [];
+  for (let i = 0; i < list.length; i++) {
+    let item2PropValueIndex = propValueMap.length;
+    if (!propValueMap.length) {
+      const val = getValues(list[i], itemSize.props)
+      val.__index__ = i;
+      propValueMap.push(val)
+      calcNewItems.push(list[i])
+      needCalcPropIndex.push(item2PropValueIndex)
+      item2PropValueMap.push({
+        index: i,
+        sizeIndex: item2PropValueIndex
+      })
+      continue;
+    }
+    let found = false;
+    for (let j = 0; j < propValueMap.length; j++) {
+      if (isSameValue(propValueMap[j], list[i], itemSize.props)) {
+        item2PropValueIndex = j;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      const val = getValues(list[i], itemSize.props)
+      val.__index__ = i;
+      propValueMap.push(val)
+      calcNewItems.push(list[i])
+      needCalcPropIndex.push(item2PropValueIndex)
+    }
+    item2PropValueMap.push({
+      index: i,
+      sizeIndex: item2PropValueIndex
+    })
+  }
+  if (propValueMap.length > 10) {
+    console.warn('[recycle-view] get itemSize count exceed maximum of 10, now got', propValueMap)
+  }
+  // console.log('itemsize', propValueMap, item2PropValueMap)
+  // 预先渲染
+  const that = this;
+  function sizeReady(rects) {
+    rects.forEach((rect, index) => {
+      const propValueIndex = needCalcPropIndex[index];
+      propValueMap[propValueIndex].width = rect.width;
+      propValueMap[propValueIndex].height = rect.height;
+    })
+    that.itemSize = newItemSize;
+    const sizeData = that._recalculateSize(list)
+    wx.setStorageSync(itemSize.cacheKey, propValueMap); // 把数据缓存起来
+    cb && cb(sizeData);
+  }
+  function newItemSize(item, index) {
+    const sizeIndex = item2PropValueMap[index];
+    if (!sizeIndex) {
+      console.error('[recycle-view] auto calculate size array error, no map size found', item, index, item2PropValueMap);
+      throw '[recycle-view] auto calculate size array error, no map size found'
+    }
+    const size = propValueMap[sizeIndex.sizeIndex]
+    if (!size) {
+      console.log('[recycle-view] auto calculate size array error, no size found', item, index, sizeIndex, propValueMap);
+      throw '[recycle-view] auto calculate size array error, no size found'
+    }
+    return {
+      width: size.width,
+      height: size.height
+    }
+  }
+  if (calcNewItems.length) {
+    const obj = {};
+    obj[itemSize.dataKey] = calcNewItems;
+    this.page.setData(obj, () => {
+      // wx.createSelectorQuery().select(itemSize.componentClass).boundingClientRect(rects => {
+      //   compSize = rects;
+      //   if (compSize && allItemSize) {
+      //     sizeReady();
+      //   }
+      // }).exec();
+      wx.createSelectorQuery().selectAll('.' + itemSize.queryClass).boundingClientRect((rects) => {
+        sizeReady(rects);
+      }).exec();
+    })
+  } else {
+    that.itemSize = newItemSize;
+    const sizeData = that._recalculateSize(list)
+    cb && cb(sizeData);
+  }
 }
 // 当before和after这2个slot发生变化的时候调用一下此接口
 RecycleContext.prototype._recalculateSize = function (list) {
@@ -197,6 +432,12 @@ RecycleContext.prototype.splice = function(begin, deleteCount, appendList, cb) {
 RecycleContext.prototype.append = RecycleContext.prototype.appendList
 
 RecycleContext.prototype.destroy = function() {
+  if (this.useInPage) {
+    this.page.onPullDownRefresh = this.oldPullDownRefresh
+    this.page.onReachBottom = this.oldReachBottom;
+    this.page.onPageScroll = this.oldPageScroll;
+    this.oldPageScroll = this.oldReachBottom = this.oldPullDownRefresh = null;
+  }
   this.page = null
   this.comp = null
   if (recycleData[this.id]) {
@@ -256,6 +497,7 @@ RecycleContext.prototype.transformRpx = RecycleContext.transformRpx = function(s
   return parseFloat(transformRpx.transformRpx(str, addPxSuffix))
 }
 RecycleContext.prototype.getViewportItems = function(inViewportPx) {
+  this.checkComp();
   const indexes = this.comp.getIndexesInViewport(inViewportPx)
   if (indexes.length <= 0) return []
   const viewportItems = []

@@ -126,7 +126,9 @@ Component({
     innerAfterHeight: 0,
     innerScrollTop: 0,
     innerScrollIntoView: '',
-    placeholderImageStr: ''
+    placeholderImageStr: '',
+    totalHeight: 0,
+    useInPage: false
   },
   attached: function() {
     if (this.data.placeholderImage) {
@@ -519,6 +521,12 @@ Component({
     setItemSize: function(size) {
       this.sizeArray = size.array
       this.sizeMap = size.map
+      if (size.totalHeight !== this.totalHeight) {
+        this.setData({
+          totalHeight: size.totalHeight,
+          useInPage: this.useInPage || false
+        })
+      }
       this.totalHeight = size.totalHeight
     },
     setList: function(key, newList) {
@@ -879,6 +887,20 @@ Component({
         if (this.sizeArray[i].beforeHeight > maxTop) break
       }
       return indexes
+    },
+    setUseInPage: function(useInPage) {
+      this.useInPage = useInPage;
+    },
+    setPlaceholderImage: function(svgs, size) {
+      const fill = "style='fill:rgb(204,204,204);'"
+      const placeholderImages = [`data:image/svg+xml,%3Csvg height='${size.height}' width='${size.width}' xmlns='http://www.w3.org/2000/svg'%3E`]
+      svgs.forEach(svg => {
+        placeholderImages.push(`%3Crect width='${svg.width}' x='${svg.left}' height='${svg.height}' y='${svg.top}' ${fill} /%3E`)
+      });
+      placeholderImages.push("%3C/svg%3E");
+      this.setData({
+        placeholderImageStr: placeholderImages.join('')
+      })
     }
   }
 })
