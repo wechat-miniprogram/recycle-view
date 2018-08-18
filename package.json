@@ -4,7 +4,7 @@
   "description": "miniprogram custom component",
   "main": "miniprogram_dist/index.js",
   "scripts": {
-    "dev": "gulp dev --develop",
+    "dev": "rm -f miniprogram_dev/project.config.json && gulp dev --develop",
     "watch": "gulp watch --develop --watch",
     "build": "gulp",
     "dist": "npm run build",

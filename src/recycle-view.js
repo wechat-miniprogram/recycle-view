@@ -1,4 +1,4 @@
-let SHOW_SCREENS = 3
+let SHOW_SCREENS = 4
 let MAX_SHOW_SCREENS = 5 // 5和3刚好合适？
 const DEFAULT_SHOW_SCREENS = SHOW_SCREENS
 const DEFAULT_MAX_SHOW_SCREENS = MAX_SHOW_SCREENS
@@ -48,6 +48,10 @@ Component({
    * 组件的属性列表
    */
   properties: {
+    debug: {
+      type: Boolean,
+      value: false
+    },
     batch: {
       type: Boolean,
       value: false,
@@ -166,7 +170,7 @@ Component({
    */
   methods: {
     _log: function() {
-      if (!DEBUG) return
+      if (!DEBUG && !this.data.debug) return
       const h = new Date
       const str = `${h.getHours()}:${h.getMinutes()}:${h.getSeconds()}.${h.getMilliseconds()}`
       Array.prototype.splice.call(arguments, 0, 0, str)
@@ -289,11 +293,13 @@ Component({
       this._lastScrollTop = scrollTop
       this._lastRenderTime = Date.now()
       // 当scroll触发时间大于200ms且大于滚动距离，下一个滚动距离会极高，容易出现白屏，因此需要马上渲染
-      const isNextScrollExpose = (usetime > 300 && usetime > scrollDistance)
-      const mustRender = force || isMatchBoundary || isNextScrollExpose
+      // const isNextScrollExpose = (usetime > 300 && usetime > scrollDistance)
+      const isNextScrollExpose = false;
+      // const mustRender = force || isMatchBoundary || isNextScrollExpose
+      const mustRender = force || isNextScrollExpose
       this._log('scrollTop', e.detail.scrollTop, isMatchBoundary, mustRender)
       if (!mustRender) {
-        if ((Math.abs(scrollTop - pos.top) < pos.height)) {
+        if ((Math.abs(scrollTop - pos.top) < pos.height*1.5)) {
           this._log('【not exceed height')
           return
         }
@@ -327,7 +333,7 @@ Component({
       if (force && this.timerId) {
         clearTimeout(this.timerId)
       }
-      // SHOW_SCREENS = DEFAULT_SHOW_SCREENS + 1 // 固定4屏幕
+      SHOW_SCREENS = DEFAULT_SHOW_SCREENS // 固定4屏幕
       pos.direction = force ? 0 : scrollTop - pos.top > 0 ? 1 : -1
       this._log('SHOW_SCREENS', SHOW_SCREENS, scrollTop, isNextScrollExpose)
       this._calcViewportIndexes(scrollLeft, scrollTop, function (beginIndex, endIndex, minTop, afterHeight, maxTop) {
@@ -339,12 +345,12 @@ Component({
           return
         }
         // 如果这次渲染的范围比上一次的范围小，则忽略
-        if (!force && !isMatchBoundary && ((pos.direction === 1 && (maxTop <= pos.maxTop)) ||
-            (pos.direction === -1 && (minTop > pos.minTop))
-        )) {
-          that._log('------------ignoreMinTop')
-          return
-        }
+        // if (!force && !isMatchBoundary && ((pos.direction === 1 && (maxTop <= pos.maxTop)) ||
+        //     (pos.direction === -1 && (minTop > pos.minTop))
+        // )) {
+        //   that._log('------------ignoreMinTop')
+        //   return
+        // }
         that._log('【check】before setData, old pos is', pos.minTop, pos.maxTop, minTop, maxTop)
         that._throttle = false
         pos.left = scrollLeft
@@ -461,8 +467,11 @@ Component({
       (typeof top === 'undefined') && (top = pos.top);
       // top = Math.max(top, this.data.beforeSlotHeight)
       const beforeSlotHeight = this.data.beforeSlotHeight || 0
-      let minTop = top - pos.height * (pos.direction == 1 ? 1 : pos.direction == -1 ? SHOW_SCREENS*2 : SHOW_SCREENS) - beforeSlotHeight
-      let maxTop = top + pos.height * (pos.direction == 1 ? SHOW_SCREENS * 2 : pos.direction == -1 ? 1 : SHOW_SCREENS) - beforeSlotHeight
+      // 和direction无关了
+      // let minTop = top - pos.height * (pos.direction == 1 ? 1 : pos.direction == -1 ? SHOW_SCREENS*2 : SHOW_SCREENS) - beforeSlotHeight
+      // let maxTop = top + pos.height * (pos.direction == 1 ? SHOW_SCREENS * 2 : pos.direction == -1 ? 1 : SHOW_SCREENS) - beforeSlotHeight
+      let minTop = top - pos.height * SHOW_SCREENS - beforeSlotHeight
+      let maxTop = top + pos.height * SHOW_SCREENS - beforeSlotHeight
       // if (pos.direction == 1) {
       //   maxTop += pos.height*1.5*MAX_SHOW_SCREENS
       // } else if (pos.direction == -1) {
