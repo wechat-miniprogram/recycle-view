@@ -242,51 +242,6 @@ Component({
         // scrollTop = this.totalHeight - this.data.height
         // isMatchBoundary = true
       }
-      // 计算白屏时间
-      const setViewportChangeInTimeout = (time) => {
-        if (this.timerId) {
-          clearTimeout(this.timerId)
-        }
-
-        this.timerId = setTimeout(() => {
-          this._pos.direction = 0
-          // 如果RecycleContext还没有初始化, 不做任何事情
-          if (!this._isValid()) {
-            return;
-          }
-          // 高度为0的情况, 不做任何渲染逻辑
-          if (!this._pos.height || !this.sizeArray.length) {
-            // 没有任何数据的情况下, 直接清理所有的状态
-            this._clearList(e.detail.cb)
-            return
-          }
-          SHOW_SCREENS = DEFAULT_SHOW_SCREENS
-          this._calcViewportIndexes(scrollLeft, scrollTop, function (beginIndex, endIndex, minTop, afterHeight, maxTop) {
-            // 渲染的数据不变
-            if (pos.beginIndex === beginIndex && pos.endIndex === endIndex &&
-                pos.minTop === minTop && pos.afterHeight === afterHeight) {
-              return
-            }
-            pos.left = scrollLeft
-            pos.top = scrollTop
-            pos.beginIndex = beginIndex
-            pos.endIndex = endIndex
-            pos.minTop = minTop
-            pos.maxTop = maxTop
-            pos.afterHeight = afterHeight
-            pos.ignoreBeginIndex = pos.ignoreEndIndex = -1
-            that.page._recycleViewportChange({
-              detail: {
-                data: that._pos,
-                id: that.id
-              }
-            })
-          })
-        }, time||1000);
-      }
-      if (!force) {
-        setViewportChangeInTimeout()
-      }
       const usetime = Date.now() - this._lastRenderTime
       const scrollDistance = Math.abs(scrollTop - this._lastScrollTop)
       const speed = usetime ? scrollDistance / usetime : 0
@@ -474,11 +429,6 @@ Component({
       // let maxTop = top + pos.height * (pos.direction == 1 ? SHOW_SCREENS * 2 : pos.direction == -1 ? 1 : SHOW_SCREENS) - beforeSlotHeight
       let minTop = top - pos.height * SHOW_SCREENS - beforeSlotHeight
       let maxTop = top + pos.height * SHOW_SCREENS - beforeSlotHeight
-      // if (pos.direction == 1) {
-      //   maxTop += pos.height*1.5*MAX_SHOW_SCREENS
-      // } else if (pos.direction == -1) {
-      //   minTop -= pos.height*1.5*MAX_SHOW_SCREENS
-      // }
       // maxTop或者是minTop超出了范围
       if (maxTop > this.totalHeight) {
         minTop -= (maxTop - this.totalHeight)
@@ -522,6 +472,7 @@ Component({
       this.sizeArray = size.array
       this.sizeMap = size.map
       if (size.totalHeight !== this.totalHeight) {
+        // console.log('---totalHeight is', size.totalHeight);
         this.setData({
           totalHeight: size.totalHeight,
           useInPage: this.useInPage || false
@@ -598,6 +549,7 @@ Component({
     reRender: function(cb) {
       let beforeSlotHeight
       let afterSlotHeight
+      const that = this;
       // const reRenderStart = Date.now()
       function newCb() {
         if (that._lastBeforeSlotHeight !== beforeSlotHeight || that._lastAfterSlotHeight !== afterSlotHeight) {
@@ -615,7 +567,6 @@ Component({
         cb && cb()
       }
       // 重新渲染事件发生
-      const that = this
       let beforeReady = false
       let afterReady = false
       this.createSelectorQuery().select('.slot-before').boundingClientRect(function(rect) {

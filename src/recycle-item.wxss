@@ -1,6 +1,6 @@
 /* components/recycle-item/recycle-item.wxss */
 :host {
-  display: block;
+  display: inline-block;
 }
 .wx-recycle-item {
   height: 100%;

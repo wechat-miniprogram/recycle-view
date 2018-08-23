@@ -20,7 +20,7 @@ Page({
       page: this,
       itemSize: {
         props: 'azFirst',
-        cacheKey: 'cacheKey', // 预先缓存的key
+        // cacheKey: 'cacheKey', // 预先缓存的key
         queryClass: 'recycle-itemsize', // 动态查询的class
         dataKey: 'recycleListItemSize', // 预先渲染的数据的wx:for绑定的变量
         // componentClass: 'recycle-list'
@@ -48,7 +48,7 @@ Page({
         newData = newData.concat(item.goods)
       }
     })
-    this.showView()
+    // this.showView()
   },
   genData: function() {
     let newData = []
@@ -58,7 +58,7 @@ Page({
       }
       // 构造270份数据
       var item = item.goods[0]
-      for (var i = 0; i < 270; i++) {
+      for (var i = 0; i < 50; i++) {
         var newItem = Object.assign({}, item)
         newData.push(newItem)
       }
@@ -117,16 +117,16 @@ Page({
   onPageScroll: function() {}, // 一定要留一个空的onPageScroll函数
   scrollToLower: function(e) {
     // 延迟1s，模拟网络请求
-    if (this.isScrollToLower) return
-    // console.log('【【【【trigger scrollToLower')
-    this.isScrollToLower = true
-    setTimeout(() => {
-      // console.log('【【【【exec scrollToLower')
-      const newList = this.genData()
-      this.ctx.append(newList, () => {
-        this.isScrollToLower = false
-      })
-    }, 1000)
+    // if (this.isScrollToLower) return
+    // // console.log('【【【【trigger scrollToLower')
+    // this.isScrollToLower = true
+    // setTimeout(() => {
+    //   // console.log('【【【【exec scrollToLower')
+    //   const newList = this.genData()
+    //   this.ctx.append(newList, () => {
+    //     this.isScrollToLower = false
+    //   })
+    // }, 1000)
   },
   scrollTo2000: function (e) {
     this.setData({
@@ -150,5 +150,17 @@ Page({
   },
   getScrollTop: function() {
     console.log('getScrollTop', this.ctx.getScrollTop())
+  },
+  showRecycleview1: function() {
+    this.setData({
+      showRecycleview: true
+    }, () => {
+      this.showView();
+    })
+  },
+  hideRecycleview: function() {
+    this.setData({
+      showRecycleview: false
+    })
   }
 })

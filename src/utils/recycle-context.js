@@ -59,11 +59,11 @@ function RecycleContext({id, dataKey, page, itemSize, useInPage, placeholderClas
 }
 RecycleContext.prototype.checkComp = function() {
   if (!this.comp) {
-    this.comp = this.page.selectComponent('#' + id)
+    this.comp = this.page.selectComponent('#' + this.id)
     if (this.comp) {
       this.comp.setUseInPage(this.useInPage);
       this.comp.context = this
-      this.comp.setPage(page)
+      this.comp.setPage(this.page)
     } else {
       throw `the recycle-view correspond to this context is detached, pls create another RecycleContext`  
     }
@@ -257,7 +257,7 @@ RecycleContext.prototype._recalculateSizeByProp = function(list, cb) {
     })
     that.itemSize = newItemSize;
     const sizeData = that._recalculateSize(list)
-    wx.setStorageSync(itemSize.cacheKey, propValueMap); // 把数据缓存起来
+    itemSize.cacheKey && wx.setStorageSync(itemSize.cacheKey, propValueMap); // 把数据缓存起来
     cb && cb(sizeData);
   }
   function newItemSize(item, index) {
@@ -305,7 +305,6 @@ RecycleContext.prototype._recalculateSize = function (list) {
   let funcExist = typeof func === 'function'
   const comp = this.comp
   const compData = comp.data
-  let itemSize = {}
   let offsetLeft = 0
   let offsetTop = 0
   let line = 0
@@ -317,6 +316,7 @@ RecycleContext.prototype._recalculateSize = function (list) {
     if (typeof list[i].__index__ === 'undefined') {
       list[i].__index__ = i
     }
+    let itemSize = {}
     // 获取到每一项的宽和高
     if (funcExist) {
       // 必须保证返回的每一行的高度一样
@@ -327,16 +327,17 @@ RecycleContext.prototype._recalculateSize = function (list) {
         height: func.height
       }
     }
+    itemSize = Object.assign({}, itemSize);
     sizeArray.push(itemSize)
-    // 判断落到哪个方格上
+    // 判断数据落到哪个方格上
     // 超过了宽度, 移动到下一行, 再根据高度判断是否需要移动到下一个方格
-    if (offsetLeft + itemSize.width > compData.width) {
+    if (offsetLeft + itemSize.width >= compData.width) {
       offsetLeft = 0
-      offsetTop += itemSize.height
       // 根据高度判断是否需要移动到下一个方格
       if (offsetTop >= RECT_SIZE * (line+1)) {
         line += parseInt((offsetTop - RECT_SIZE*line)/RECT_SIZE)
       }
+      offsetTop += itemSize.height
       column = 0
       // 新起一行的元素, beforeHeight是前一个元素的beforeHeight和height相加
       if (i === 0) {
@@ -349,6 +350,7 @@ RecycleContext.prototype._recalculateSize = function (list) {
       if (offsetLeft >= RECT_SIZE * (column+1)) {
         column++
       }
+      offsetLeft += itemSize.width
       if (i === 0) {
         itemSize.beforeHeight = 0
       } else {
@@ -359,12 +361,13 @@ RecycleContext.prototype._recalculateSize = function (list) {
     const key = `${line}.${column}`
     sizeMap[key] || (sizeMap[key] = [])
     sizeMap[key].push(i)
-    offsetLeft += itemSize.width
   }
+  // console.log('sizeArray is', sizeArray, sizeArray[sizeArray.length-1].beforeHeight + sizeArray[sizeArray.length-1].height)
+  // console.log('sizeMap', sizeMap)
   const obj = {
     array: sizeArray,
     map: sizeMap,
-    totalHeight: offsetTop + itemSize.height
+    totalHeight: sizeArray.length ? sizeArray[sizeArray.length-1].beforeHeight + sizeArray[sizeArray.length-1].height : 0
   }
   comp.setItemSize(obj)
   return obj
