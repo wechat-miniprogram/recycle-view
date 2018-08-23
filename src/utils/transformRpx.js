@@ -6,7 +6,7 @@ const checkDeviceWidth = () => {
   const info = wx.getSystemInfoSync()
   // console.log('info', info)
   isIPhone = info.platform === 'ios'
-  let newDeviceWidth = info.screenWidth || 375
+  const newDeviceWidth = info.screenWidth || 375
   const newDeviceDPR = info.pixelRatio || 2
 
   if (!isIPhone) {
@@ -48,7 +48,7 @@ const transformRpx = (style, inline) => {
     return style
   }
   const re = rpxRE
-  return style.replace(re, function(match, num) {
+  return style.replace(re, function (match, num) {
     return transformByDPR(Number(num)) + (inline ? 'px' : '')
   })
 }

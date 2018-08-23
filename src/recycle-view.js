@@ -32,6 +32,7 @@ Component({
               target.createSelectorQuery().select('.wx-recycle-item').boundingClientRect(function(rect) {
                 if (rect && (rect.width !== size.width || rect.height !== size.height)) {
                   // console.warn('[recycle-view] the size in <recycle-item> is not the same with param itemSize')
+                  // eslint-disable-next-line no-console
                   console.warn(`[recycle-view] the size in <recycle-item> is not the same with param itemSize, expect {width: ${rect.width}, height: ${rect.height}} but got {width: ${size.width}, height: ${size.height}}`)
                 }
               }).exec()
@@ -176,6 +177,7 @@ Component({
       const h = new Date
       const str = `${h.getHours()}:${h.getMinutes()}:${h.getSeconds()}.${h.getMilliseconds()}`
       Array.prototype.splice.call(arguments, 0, 0, str)
+      // eslint-disable-next-line no-console
       console.log.apply(console, arguments)
     },
     _scrollToUpper: function(e) {
