@@ -9,6 +9,7 @@ yarn-debug.log*
 yarn-error.log*
 
 test
+docs
 miniprogram_dev
 node_modules
 coverage
