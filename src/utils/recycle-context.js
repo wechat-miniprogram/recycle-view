@@ -1,21 +1,23 @@
+/* eslint complexity: ["error", {"max": 50}] */
 const recycleData = require('./recycle-data.js')
 const recycleViewportChangeFunc = require('./viewport-change-func')
 const transformRpx = require('./transformRpx.js')
 
 const RECT_SIZE = 200
 
+// eslint-disable-next-line no-complexity
 function RecycleContext({
   id, dataKey, page, itemSize, useInPage, placeholderClass
 }) {
   if (!id || !dataKey || !page || !itemSize) {
-    throw 'parameter id, dataKey, page, itemSize is required'
+    throw new Error('parameter id, dataKey, page, itemSize is required')
   }
   if (typeof itemSize !== 'function' && typeof itemSize !== 'object') {
-    throw 'parameter itemSize must be function or object with key width and height'
+    throw new Error('parameter itemSize must be function or object with key width and height')
   }
   if (typeof itemSize === 'object' && (!itemSize.width || !itemSize.height) &&
       (!itemSize.props || !itemSize.queryClass || !itemSize.dataKey)) {
-    throw 'parameter itemSize must be function or object with key width and height'
+    throw new Error('parameter itemSize must be function or object with key width and height')
   }
   this.id = id
   this.dataKey = dataKey
@@ -39,23 +41,29 @@ function RecycleContext({
     // 重写onPageScroll事件
     this.page.onPageScroll = (e) => {
       // this.checkComp();
-      this.comp && this.comp._scrollViewDidScroll({
-        detail: {
-          scrollLeft: 0,
-          scrollTop: e.scrollTop
-        }
-      })
-      this.oldPageScroll.apply(this.page, arguments)
+      if (this.comp) {
+        this.comp._scrollViewDidScroll({
+          detail: {
+            scrollLeft: 0,
+            scrollTop: e.scrollTop
+          }
+        })
+      }
+      this.oldPageScroll.apply(this.page, [e])
     }
     this.oldReachBottom = this.page.onReachBottom
     this.page.onReachBottom = (e) => {
-      this.comp && this.comp.triggerEvent('scrolltolower', {})
-      this.oldReachBottom.apply(this.page, arguments)
+      if (this.comp) {
+        this.comp.triggerEvent('scrolltolower', {})
+      }
+      this.oldReachBottom.apply(this.page, [e])
     }
     this.oldPullDownRefresh = this.page.onPullDownRefresh
     this.page.onPullDownRefresh = (e) => {
-      this.comp && this.comp.triggerEvent('scrolltoupper', {})
-      this.oldPullDownRefresh.apply(this.page, arguments)
+      if (this.comp) {
+        this.comp.triggerEvent('scrolltoupper', {})
+      }
+      this.oldPullDownRefresh.apply(this.page, [e])
     }
   }
 }
@@ -67,7 +75,7 @@ RecycleContext.prototype.checkComp = function () {
       this.comp.context = this
       this.comp.setPage(this.page)
     } else {
-      throw 'the recycle-view correspond to this context is detached, pls create another RecycleContext'
+      throw new Error('the recycle-view correspond to this context is detached, pls create another RecycleContext')
     }
   }
 }
@@ -92,7 +100,6 @@ RecycleContext.prototype.appendList = function (list, cb) {
 }
 RecycleContext.prototype._forceRerender = function (id, cb) {
   this.isDataReady = true // 首次调用说明数据已经ready了
-  const page = this.page
   // 动态计算高度并缓存
   const that = this
   let allrect = null
@@ -116,7 +123,9 @@ RecycleContext.prototype._forceRerender = function (id, cb) {
     })
   }
   function newcb() {
-    cb && cb()
+    if (cb) {
+      cb()
+    }
     // 计算placeholder, 只有在动态计算高度的时候才支持
     if (that.autoCalculateSize && that.placeholderClass) {
       const newQueryClass = []
@@ -136,8 +145,8 @@ RecycleContext.prototype._forceRerender = function (id, cb) {
       }).exec()
     }
   }
-  if (Object.prototype.toString.call(this.itemSize) === '[object Object]' &&
-        this.itemSize && !this.itemSize.width) {
+  if (Object.prototype.toString.call(this.itemSizeOpt) === '[object Object]' &&
+        this.itemSizeOpt && !this.itemSizeOpt.width) {
     this._recalculateSizeByProp(recycleData[id].list, function (sizeData) {
       recycleData[id].sizeMap = sizeData.map
       recycleData[id].sizeArray = sizeData.array
@@ -161,7 +170,7 @@ function getValue(item, key) {
   for (let i = 0; i < keyItems.length; i++) {
     item = item[keyItems[i]]
     if (typeof item === 'undefined' || (typeof item === 'object' && !item)) {
-      return
+      return undefined
     }
   }
   return item
@@ -201,7 +210,7 @@ function isSameValue(item1, item2, keys) {
 }
 RecycleContext.prototype._recalculateSizeByProp = function (list, cb) {
   const itemSize = this.itemSizeOpt
-  let propValueMap = []
+  let propValueMap = this.propValueMap || []
   const calcNewItems = []
   const needCalcPropIndex = []
   if (itemSize.cacheKey) {
@@ -245,6 +254,8 @@ RecycleContext.prototype._recalculateSizeByProp = function (list, cb) {
       sizeIndex: item2PropValueIndex
     })
   }
+  // this.item2PropValueMap = item2PropValueMap
+  this.propValueMap = propValueMap
   if (propValueMap.length > 10) {
     // eslint-disable-next-line no-console
     console.warn('[recycle-view] get itemSize count exceed maximum of 10, now got', propValueMap)
@@ -252,6 +263,24 @@ RecycleContext.prototype._recalculateSizeByProp = function (list, cb) {
   // console.log('itemsize', propValueMap, item2PropValueMap)
   // 预先渲染
   const that = this
+  function newItemSize(item, index) {
+    const sizeIndex = item2PropValueMap[index]
+    if (!sizeIndex) {
+      // eslint-disable-next-line no-console
+      console.error('[recycle-view] auto calculate size array error, no map size found', item, index, item2PropValueMap)
+      throw new Error('[recycle-view] auto calculate size array error, no map size found')
+    }
+    const size = propValueMap[sizeIndex.sizeIndex]
+    if (!size) {
+      // eslint-disable-next-line no-console
+      console.log('[recycle-view] auto calculate size array error, no size found', item, index, sizeIndex, propValueMap)
+      throw new Error('[recycle-view] auto calculate size array error, no size found')
+    }
+    return {
+      width: size.width,
+      height: size.height
+    }
+  }
   function sizeReady(rects) {
     rects.forEach((rect, index) => {
       const propValueIndex = needCalcPropIndex[index]
@@ -260,25 +289,11 @@ RecycleContext.prototype._recalculateSizeByProp = function (list, cb) {
     })
     that.itemSize = newItemSize
     const sizeData = that._recalculateSize(list)
-    itemSize.cacheKey && wx.setStorageSync(itemSize.cacheKey, propValueMap); // 把数据缓存起来
-    cb && cb(sizeData);
-  }
-  function newItemSize(item, index) {
-    const sizeIndex = item2PropValueMap[index]
-    if (!sizeIndex) {
-      // eslint-disable-next-line no-console
-      console.error('[recycle-view] auto calculate size array error, no map size found', item, index, item2PropValueMap)
-      throw '[recycle-view] auto calculate size array error, no map size found'
+    if (itemSize.cacheKey) {
+      wx.setStorageSync(itemSize.cacheKey, propValueMap) // 把数据缓存起来
     }
-    const size = propValueMap[sizeIndex.sizeIndex]
-    if (!size) {
-      // eslint-disable-next-line no-console
-      console.log('[recycle-view] auto calculate size array error, no size found', item, index, sizeIndex, propValueMap)
-      throw '[recycle-view] auto calculate size array error, no size found'
-    }
-    return {
-      width: size.width,
-      height: size.height
+    if (cb) {
+      cb(sizeData)
     }
   }
   if (calcNewItems.length) {
@@ -298,7 +313,9 @@ RecycleContext.prototype._recalculateSizeByProp = function (list, cb) {
   } else {
     that.itemSize = newItemSize
     const sizeData = that._recalculateSize(list)
-    cb && cb(sizeData)
+    if (cb) {
+      cb(sizeData)
+    }
   }
 }
 // 当before和after这2个slot发生变化的时候调用一下此接口
@@ -314,7 +331,6 @@ RecycleContext.prototype._recalculateSize = function (list) {
   let offsetTop = 0
   let line = 0
   let column = 0
-  const totalHeight = 0
   const sizeArray = []
   // 把整个页面拆分成200*200的很多个方格, 判断每个数据落在哪个方格上
   for (let i = 0; i < list.length; i++) {
@@ -332,17 +348,17 @@ RecycleContext.prototype._recalculateSize = function (list) {
         height: func.height
       }
     }
-    itemSize = Object.assign({}, itemSize);
+    itemSize = Object.assign({}, itemSize)
     sizeArray.push(itemSize)
     // 判断数据落到哪个方格上
     // 超过了宽度, 移动到下一行, 再根据高度判断是否需要移动到下一个方格
-    if (offsetLeft + itemSize.width >= compData.width) {
-      offsetLeft = 0
+    if (offsetLeft + itemSize.width > compData.width) {
+      offsetLeft = itemSize.width
+      offsetTop += sizeArray[sizeArray.length - 2].height // 加上最后一个数据的高度
       // 根据高度判断是否需要移动到下一个方格
       if (offsetTop >= RECT_SIZE * (line + 1)) {
-        line += parseInt((offsetTop - RECT_SIZE * line) / RECT_SIZE)
+        line += parseInt((offsetTop - RECT_SIZE * line) / RECT_SIZE, 10)
       }
-      offsetTop += itemSize.height
       column = 0
       // 新起一行的元素, beforeHeight是前一个元素的beforeHeight和height相加
       if (i === 0) {
@@ -364,25 +380,26 @@ RecycleContext.prototype._recalculateSize = function (list) {
       }
     }
     const key = `${line}.${column}`
-    sizeMap[key] || (sizeMap[key] = [])
+    if (!sizeMap[key]) {
+      (sizeMap[key] = [])
+    }
     sizeMap[key].push(i)
   }
-  // console.log('sizeArray is', sizeArray, sizeArray[sizeArray.length-1].beforeHeight + sizeArray[sizeArray.length-1].height)
   // console.log('sizeMap', sizeMap)
   const obj = {
     array: sizeArray,
     map: sizeMap,
-    totalHeight: sizeArray.length ? sizeArray[sizeArray.length-1].beforeHeight + sizeArray[sizeArray.length-1].height : 0
+    totalHeight: sizeArray.length ? sizeArray[sizeArray.length - 1].beforeHeight +
+      sizeArray[sizeArray.length - 1].height : 0
   }
   comp.setItemSize(obj)
   return obj
 }
 RecycleContext.prototype.deleteList = function (beginIndex, count, cb) {
   this.checkComp()
-  const page = this.page
   const id = this.id
   if (!recycleData[id]) {
-    return
+    return this
   }
   recycleData[id].list.splice(beginIndex, count)
   this._forceRerender(id, cb)
@@ -390,10 +407,9 @@ RecycleContext.prototype.deleteList = function (beginIndex, count, cb) {
 }
 RecycleContext.prototype.updateList = function (beginIndex, list, cb) {
   this.checkComp()
-  const page = this.page
   const id = this.id
   if (!recycleData[id]) {
-    return
+    return this
   }
   const len = recycleData[id].list.length
   for (let i = 0; i < list.length && beginIndex < len; i++) {
@@ -456,7 +472,7 @@ RecycleContext.prototype.destroy = function () {
 // 重新更新下页面的数据
 RecycleContext.prototype.forceUpdate = function (cb, reinitSlot) {
   this.checkComp()
-  if (this.reinitSlot) {
+  if (reinitSlot) {
     this.comp.reRender(() => {
       this._forceRerender(this.id, cb)
     })
@@ -486,7 +502,7 @@ RecycleContext.prototype.getBoundingClientRect = function (index) {
     }
     return list
   }
-  index = parseInt(index)
+  index = parseInt(index, 10)
   if (index >= sizeArray.length || index < 0) return null
   return {
     left: 0,

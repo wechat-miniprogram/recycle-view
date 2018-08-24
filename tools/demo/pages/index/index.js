@@ -117,16 +117,16 @@ Page({
   onPageScroll: function() {}, // 一定要留一个空的onPageScroll函数
   scrollToLower: function(e) {
     // 延迟1s，模拟网络请求
-    // if (this.isScrollToLower) return
-    // // console.log('【【【【trigger scrollToLower')
-    // this.isScrollToLower = true
-    // setTimeout(() => {
-    //   // console.log('【【【【exec scrollToLower')
-    //   const newList = this.genData()
-    //   this.ctx.append(newList, () => {
-    //     this.isScrollToLower = false
-    //   })
-    // }, 1000)
+    if (this.isScrollToLower) return
+    // console.log('【【【【trigger scrollToLower')
+    this.isScrollToLower = true
+    setTimeout(() => {
+      // console.log('【【【【exec scrollToLower')
+      const newList = this.genData()
+      this.ctx.append(newList, () => {
+        this.isScrollToLower = false
+      })
+    }, 1000)
   },
   scrollTo2000: function (e) {
     this.setData({

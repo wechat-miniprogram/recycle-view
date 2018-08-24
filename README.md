@@ -192,21 +192,20 @@ npm install --save miniprogram-recycle-view
    itemSize的各个属性，要配合wxml的详细写法来生成，先看下wxml的写法：
 
    ```html
-   <recycle-view class="recycle-list" batch="{{batchSetRecycleData}}" height="500" id="recycleId">
+   <recycle-view wx:if="{{showRecycleview}}" class="recycle-list" placeholder-image="{{placeholderImage}}" bindscrolltolower="scrollToLower" scroll-with-animation="{{true}}" scroll-to-index="{{index}}" scroll-top="{{scrollTop}}" batch="{{batchSetRecycleData}}" height="500" id="recycleId">
      <view slot="itemsize">
-       <block wx:for="{{recycleListItemSize}}" wx:key="id">
-         <template is="recycleItem" data="{{item: item}}"></template>
-       </block>
+       <template is="recycleItem" data="{{item: item, recycleList: recycleListItemSize}}"></template>
      </view>
-     <recycle-item wx:for="{{recycleList}}" wx:key="id">
-       <template is="recycleItem" data="{{item: item}}"></template>
-     </recycle-item>
+     <template is="recycleItem" data="{{item: item, recycleList: recycleList}}"></template>
+     <view slot="after" style="height:200px;">after height:200px view</view>
    </recycle-view>
    <template name="recycleItem">
-     <view class="recycle-itemsize" style="width:100%;height:{{item.test.azFirst ? 130 : 120}}px;position: relative;">
-         <image class='recycle-image' style='width:80px;height:80px;' src="{{item.image_url}}?imageView2/2/w/120/h/0/q/120/format/jpg"></image>
-       <text class="recycle-text">{{item.idx+1}}. {{item.title}}</text>
-     </view>
+     <recycle-item style="width:50%;" wx:for="{{recycleList}}" wx:key="id">
+       <view class="recycle-itemsize" style="width:100%;height:{{item.test.azFirst ? 160 : 160}}px;position: relative;">
+           <image class='recycle-image' style='width:80px;height:80px;' src="{{item.image_url}}?imageView2/2/w/120/h/0/q/120/format/jpg"></image>
+         <text class="recycle-text">{{item.idx+1}}. {{item.title}}</text>
+       </view>
+     </recycle-item>
    </template>
    ```
 

@@ -11,9 +11,8 @@ const checkDeviceWidth = () => {
 
   if (!isIPhone) {
     // HACK switch width and height when landscape
-    const newDeviceHeight = info.screenHeight || 375
+    // const newDeviceHeight = info.screenHeight || 375
     // 暂时不处理转屏的情况
-    // if (window.screen.orientation && /^landscape/.test(window.screen.orientation.type || '')) newDeviceWidth = newDeviceHeight
   }
 
   if (newDeviceWidth !== deviceWidth || newDeviceDPR !== deviceDPR) {
@@ -41,7 +40,7 @@ const transformByDPR = (number) => {
 }
 
 const rpxRE = /([+-]?\d+(?:\.\d+)?)rpx/gi
-const inlineRpxRE = /(?::|\s|\(|\/)([+-]?\d+(?:\.\d+)?)rpx/g
+// const inlineRpxRE = /(?::|\s|\(|\/)([+-]?\d+(?:\.\d+)?)rpx/g
 
 const transformRpx = (style, inline) => {
   if (typeof style !== 'string') {

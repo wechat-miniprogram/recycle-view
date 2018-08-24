@@ -1,6 +1,7 @@
+/* eslint complexity: ["error", {"max": 50}] */
 const recycleData = require('./recycle-data.js')
 
-module.exports = function _recycleViewportChange(e, cb) {
+module.exports = function (e, cb) {
   const detail = e.detail
   // console.log('data change transfer use time', Date.now() - e.detail.timeStamp)
   let newList = []
@@ -13,7 +14,7 @@ module.exports = function _recycleViewportChange(e, cb) {
   const endIndex = pos.endIndex
   item.pos = pos
   // 加ignoreBeginIndex和ignoreEndIndex
-  if (typeof beginIndex === 'undefined' || beginIndex == -1 || typeof endIndex === 'undefined' || endIndex == -1) {
+  if (typeof beginIndex === 'undefined' || beginIndex === -1 || typeof endIndex === 'undefined' || endIndex === -1) {
     newList = []
   } else {
     let i = -1
@@ -25,7 +26,7 @@ module.exports = function _recycleViewportChange(e, cb) {
   const obj = {
     batchSetRecycleData: !this.data.batchSetRecycleData
   }
-  const setDataStart = +new Date()
+  // const setDataStart = +new Date()
   obj[item.key] = newList
   const comp = this.selectComponent('#' + detail.id)
   // comp.setList(item.key, newList)
@@ -35,7 +36,9 @@ module.exports = function _recycleViewportChange(e, cb) {
   })
   // console.log('before set recycleData')
   this.setData(obj, function () {
-    cb && cb()
+    if (typeof cb === 'function') {
+      cb()
+    }
     // console.log('set recycleData data use time', Date.now() - setDataStart, JSON.stringify(pos))
   })
 }

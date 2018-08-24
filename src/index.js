@@ -12,6 +12,6 @@ const RecycleContext = require('./utils/recycle-context.js')
       itemSize: 函数或者是Object对象，生成每个recycle-item的宽和高
  * @return RecycleContext对象
  */
-module.exports = function(options) {
+module.exports = function (options) {
   return new RecycleContext(options)
 }

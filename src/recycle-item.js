@@ -3,15 +3,13 @@ Component({
   relations: {
     './recycle-view': {
       type: 'parent', // 关联的目标节点应为子节点
-      linked: function (target) {
-      }
+      linked() {}
     }
   },
   /**
    * 组件的属性列表
    */
   properties: {
-    
   },
 
   /**
@@ -25,8 +23,7 @@ Component({
    * 组件的方法列表
    */
   methods: {
-    heightChange: function() {
-      
+    heightChange() {
     }
   }
 })
