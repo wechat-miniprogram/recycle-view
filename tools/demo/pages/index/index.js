@@ -48,7 +48,7 @@ Page({
         newData = newData.concat(item.goods)
       }
     })
-    // this.showView()
+    this.showView()
   },
   genData: function() {
     let newData = []
