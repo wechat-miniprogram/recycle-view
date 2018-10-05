@@ -606,6 +606,22 @@ Component({
         this._tmpInnerScrollTop = undefined
       }
     },
+    _renderByScrollTop(scrollTop) {
+      // 先setData把目标位置的数据补齐
+      this._scrollViewDidScroll({
+        detail: {
+          scrollLeft: this._pos.scrollLeft,
+          scrollTop,
+          ignoreScroll: true
+        }
+      }, true)
+      if (this.data.scrollWithAnimation) {
+        this._isScrollingWithAnimation = true
+      }
+      this.setData({
+        innerScrollTop: scrollTop
+      })
+    },
     _scrollTopChanged(newVal, oldVal) {
       // if (newVal === oldVal && newVal === 0) return
       if (!this._isInitScrollTop && newVal === 0) {
@@ -635,32 +651,14 @@ Component({
         })
         return newVal
       }
-      if (this.data.scrollWithAnimation) {
-        // 先setData把目标位置的数据补齐
-        this._scrollViewDidScroll({
-          detail: {
-            scrollLeft: this._pos.scrollLeft,
-            scrollTop: newVal,
-            ignoreScroll: true
-          }
-        }, true)
-        this._isScrollingWithAnimation = true
-        this.setData({
-          innerScrollTop: newVal
-        })
-        // this._innerScrollChangeWithAnimation(newVal, newVal - this._lastScrollTop > 0)
-      } else if (!this._isScrollTopChanged) {
+      if (!this._isScrollTopChanged) {
         // 首次的值需要延后一点执行才能生效
         setTimeout(() => {
           this._isScrollTopChanged = true
-          this.setData({
-            innerScrollTop: newVal
-          })
+          this._renderByScrollTop(newVal)
         }, 10)
       } else {
-        this.setData({
-          innerScrollTop: newVal
-        })
+        this._renderByScrollTop(newVal)
       }
       return newVal
     },
@@ -696,31 +694,13 @@ Component({
         })
         return newVal
       }
-      if (this.data.scrollWithAnimation) {
-        // 有动画效果的话, 需要和scrollTopChange类似的处理方式
-        // 获取newVal对应的id的clientRect
-        this._scrollViewDidScroll({
-          detail: {
-            scrollLeft: this._pos.scrollLeft,
-            scrollTop: calScrollTop,
-            ignoreScroll: true
-          }
-        }, true)
-        this._isScrollingWithAnimation = true
-        this.setData({
-          innerScrollTop: calScrollTop
-        })
-      } else if (!this._isScrollToIndexChanged) {
+      if (!this._isScrollToIndexChanged) {
         setTimeout(() => {
           this._isScrollToIndexChanged = true
-          this.setData({
-            innerScrollTop: calScrollTop
-          })
+          this._renderByScrollTop(calScrollTop)
         }, 10)
       } else {
-        this.setData({
-          innerScrollTop: calScrollTop
-        })
+        this._renderByScrollTop(calScrollTop)
       }
       return newVal
     },
