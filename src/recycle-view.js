@@ -8,7 +8,6 @@ const RECT_SIZE = 200
 const systemInfo = wx.getSystemInfoSync()
 const DEBUG = false
 const BOUNDARY_INTERVAL = 400 // 到达边界多少距离的时候, 直接改为边界位置
-const THROTTLE_DISTANCE = 2000 // 超过这个的滚动距离必须要抛弃掉
 const SETDATA_INTERVAL_BOUNDARY = 300 // 大于300ms则减少MAX_SHOW_SCREEN的值
 const SETDATA_INTERVAL_BOUNDARY_1 = 500
 const transformRpx = require('./utils/transformRpx.js').transformRpx
@@ -259,11 +258,6 @@ Component({
       if (!mustRender) {
         if ((Math.abs(scrollTop - pos.top) < pos.height * 1.5)) {
           this._log('【not exceed height')
-          return
-        }
-        if ((scrollDistance > THROTTLE_DISTANCE || this._isScrollRendering)) {
-          this._throttle = true
-          this._log('【throttle because', scrollDistance, this._throttle)
           return
         }
       }
