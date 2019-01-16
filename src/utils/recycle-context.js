@@ -7,7 +7,7 @@ const RECT_SIZE = 200
 
 // eslint-disable-next-line no-complexity
 function RecycleContext({
-  id, dataKey, page, itemSize, useInPage, placeholderClass
+  id, dataKey, page, itemSize, useInPage, placeholderClass, root
 }) {
   if (!id || !dataKey || !page || !itemSize) {
     throw new Error('parameter id, dataKey, page, itemSize is required')
@@ -22,6 +22,8 @@ function RecycleContext({
   this.id = id
   this.dataKey = dataKey
   this.page = page
+  // 加root参数给useInPage单独使用
+  this.root = root
   this.placeholderClass = placeholderClass
   page._recycleViewportChange = recycleViewportChangeFunc
   this.comp = page.selectComponent('#' + id)
@@ -36,10 +38,13 @@ function RecycleContext({
     this.comp.setPage(page)
     this.comp.setUseInPage(this.useInPage)
   }
+  if (this.useInPage && !this.root) {
+    throw new Error('parameter root is required when useInPage is true')
+  }
   if (this.useInPage) {
-    this.oldPageScroll = this.page.onPageScroll
+    this.oldPageScroll = this.root.onPageScroll
     // 重写onPageScroll事件
-    this.page.onPageScroll = (e) => {
+    this.root.onPageScroll = (e) => {
       // this.checkComp();
       if (this.comp) {
         this.comp._scrollViewDidScroll({
@@ -49,21 +54,21 @@ function RecycleContext({
           }
         })
       }
-      this.oldPageScroll.apply(this.page, [e])
+      this.oldPageScroll.apply(this.root, [e])
     }
-    this.oldReachBottom = this.page.onReachBottom
-    this.page.onReachBottom = (e) => {
+    this.oldReachBottom = this.root.onReachBottom
+    this.root.onReachBottom = (e) => {
       if (this.comp) {
         this.comp.triggerEvent('scrolltolower', {})
       }
-      this.oldReachBottom.apply(this.page, [e])
+      this.oldReachBottom.apply(this.root, [e])
     }
-    this.oldPullDownRefresh = this.page.onPullDownRefresh
-    this.page.onPullDownRefresh = (e) => {
+    this.oldPullDownRefresh = this.root.onPullDownRefresh
+    this.root.onPullDownRefresh = (e) => {
       if (this.comp) {
         this.comp.triggerEvent('scrolltoupper', {})
       }
-      this.oldPullDownRefresh.apply(this.page, [e])
+      this.oldPullDownRefresh.apply(this.root, [e])
     }
   }
 }
