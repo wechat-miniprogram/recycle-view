@@ -147,7 +147,8 @@ npm install --save miniprogram-recycle-view
    | dataKey  | String          | 对应 recycle-item 的 wx:for 属性设置的绑定变量名                   |
    | page     | Page/Component  | recycle-view 所在的页面或者组件的实例，页面或者组件内可以直接传 this |
    | itemSize | Object/Function | 此参数用来生成recycle-item的宽和高，前面提到过，要知道当前需要渲染哪些item，必须知道item的宽高才能进行计算<br />Object必须包含{width, height}两个属性，Function的话接收item, index这2个参数，返回一个包含{width, height}的Object<br />itemSize如果是函数，函数里面`this`指向RecycleContext<br />如果样式使用了rpx，可以通过transformRpx来转化为px。<br />为Object类型的时候，还有另外一种用法，详细情况见下面的itemSize章节的介绍。 |
-   | useInPage | Boolean | 是否整个页面只有recycle-view。Page的定义里面必须至少加空的onPageScroll函数，主要是用在页面级别的长列表，并且需要用到onPullDownRefresh的效果。 |
+   | useInPage | Boolean | 是否整个页面只有recycle-view。Page的定义里面必须至少加空的onPageScroll函数，主要是用在页面级别的长列表，并且需要用到onPullDownRefresh的效果。切必须设置`root`参数为当前页面对象 |
+   | root | Page | 当前页面对象，可以通过getCurrentPages获取, 当useInPage为true必须提供 |
    | placeholderClass | Array | 和itemSize的最后一种用法一起配合，自动生成placeholder-image占位背景图。详见最后itemSize章节的介绍。 |
 
    RecycleContext 对象提供的方法有：
@@ -161,77 +162,10 @@ npm install --save miniprogram-recycle-view
    | forceUpdate           | callback, reinitSlot         | 重新渲染recycle-view。callback是渲染完成的回调函数，当before和after这2个slot的高度发生变化时候调用此函数，reinitSlot设置为true。当item的宽高发生变化的时候也需要调用此方法。 |
    | getBoundingClientRect | index                        | 获取某个数据项的在长列表中的位置，返回{left, top, width, height}的Object。 |
    | getScrollTop          | 无                           | 获取长列表的当前的滚动位置。                                 |
-   | transformRpx          | rpx                          | 将rpx转化为px，返回转化后的px整数。itemSize返回的宽高单位是px，可以在这里调用此函数将rpx转化为px，参数是Number，例如ctx.transformRpx(140)，返回70。 |
+   | transformRpx          | rpx                          | 将rpx转化为px，返回转化后的px整数。itemSize返回的宽高单位是px，可以在这里调用此函数将rpx转化为px，参数是Number，例如ctx.transformRpx(140)，返回70。注意，transformRpx会进行四舍五入，所以transformRpx(20) + transformRpx(90)不一定等于transformRpx(110) |
    | getViewportItems      | inViewportPx                 | 获取在视窗内的数据项，用于判断某个项是否出现在视窗内。用于曝光数据上报，菜品和类别的联动效果实现。参数inViewportPx表示距离屏幕多少像素为出现在屏幕内，可以为负值。 |
 
    ## itemSize使用
-
-   itemSize主要是用于生成每条数据的宽高信息，有下面的2种宽高信息生成的方法。
-
-   ### 1. 自动生成宽高
-
-   基本的思路是提供少量的数据进行预先渲染，然后通过createSelectorQuery接口查询得到高度信息。
-
-   JS的调用方法如下：
-
-   ```javascript
-   var ctx = createRecycleContext({
-       id: 'recycleId',
-       dataKey: 'recycleList',
-       page: this,
-       itemSize: {
-           props: ['azFirst'],
-           cacheKey: 'cacheKey', // 预先缓存的key
-           queryClass: 'recycle-itemsize', // 动态查询的class
-           dataKey: 'recycleListItemSize', // 预先渲染的数据的wx:for绑定的变量
-       },
-       placeholderClass: ['recycle-image', 'recycle-text']
-   })
-   ```
-
-   itemSize的各个属性，要配合wxml的详细写法来生成，先看下wxml的写法：
-
-   ```html
-   <recycle-view wx:if="{{showRecycleview}}" class="recycle-list" placeholder-image="{{placeholderImage}}" bindscrolltolower="scrollToLower" scroll-with-animation="{{true}}" scroll-to-index="{{index}}" scroll-top="{{scrollTop}}" batch="{{batchSetRecycleData}}" height="500" id="recycleId">
-     <view slot="itemsize">
-       <template is="recycleItem" data="{{item: item, recycleList: recycleListItemSize}}"></template>
-     </view>
-     <template is="recycleItem" data="{{item: item, recycleList: recycleList}}"></template>
-     <view slot="after" style="height:200px;">after height:200px view</view>
-   </recycle-view>
-   <template name="recycleItem">
-     <recycle-item style="width:50%;" wx:for="{{recycleList}}" wx:key="id">
-       <view class="recycle-itemsize" style="width:100%;height:{{item.test.azFirst ? 160 : 160}}px;position: relative;">
-           <image class='recycle-image' style='width:80px;height:80px;' src="{{item.image_url}}?imageView2/2/w/120/h/0/q/120/format/jpg"></image>
-         <text class="recycle-text">{{item.idx+1}}. {{item.title}}</text>
-       </view>
-     </recycle-item>
-   </template>
-   ```
-
-   JS和wxml里面的class的对应关系如下图所示：
-
-   ![](./images/recycle-view.png)
-
-   还有2个属性props和cacheKey，其中props可以指定数据的多个key，长列表组件会自动聚合key对应的值，并取出数据进行预先渲染并查询得到高度。假设数据为
-
-   ```javascript
-   [{
-       azFirst: true, // 对应高度130px
-       ...
-   }, {
-       azFirst: false, // 对应高度120px
-       ...
-   }]
-   ```
-
-   props指定的`azFirst`对应的数据里面的属性。
-
-   由于自动计算高度有一定耗时，可以指定cacheKey，长列表则会将计算的高度缓存起来，下次使用。当数据的宽高发生改变的时候，必须要重新指定一个cacheKey。
-
-   当指定了`placeholderClass`之后，则会自动生成占位背景图设置在`recycle-view`组件的`placeholder-image`属性上。
-
-   ### 2. 自己计算高度
 
    itemSize可以为包含{width, height}的Object，所有数据只有一种宽高信息。如果有多种，则可以提供一个函数，长列表组件会调用这个函数生成每条数据的宽高信息，如下所示：
 
@@ -257,4 +191,4 @@ npm install --save miniprogram-recycle-view
    7. 如果长列表里面包含图片，必须保证图片资源是有HTTP缓存的，否则在滚动过程中会发起很多的图片请求。
    8. 有些数据不一定会渲染出来，使用wx.createSelectorQuery的时候有可能会失效，可使用RecycleContext的getBoundingClientRect来替代。
    9. 当使用了useInPage参数的时候，必须在Page里面定义onPageScroll事件。
-
+  10. transformRpx会进行四舍五入，所以`transformRpx(20) + transformRpx(90)`不一定等于`transformRpx(110)`
