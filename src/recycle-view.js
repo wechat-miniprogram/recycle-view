@@ -731,6 +731,9 @@ Component({
       }
       return indexes
     },
+    getTotalHeight() {
+      return this.totalHeight
+    },
     setUseInPage(useInPage) {
       this.useInPage = useInPage
     },

@@ -536,4 +536,8 @@ RecycleContext.prototype.getViewportItems = function (inViewportPx) {
   }
   return viewportItems
 }
+RecycleContext.prototype.getTotalHeight = function () {
+  this.checkComp()
+  return this.comp.getTotalHeight()
+}
 module.exports = RecycleContext
