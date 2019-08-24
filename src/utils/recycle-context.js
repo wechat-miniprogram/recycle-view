@@ -337,8 +337,9 @@ RecycleContext.prototype._recalculateSize = function (list) {
   let line = 0
   let column = 0
   const sizeArray = []
+  const listLen = list.length
   // 把整个页面拆分成200*200的很多个方格, 判断每个数据落在哪个方格上
-  for (let i = 0; i < list.length; i++) {
+  for (let i = 0; i < listLen; i++) {
     if (typeof list[i].__index__ === 'undefined') {
       list[i].__index__ = i
     }
@@ -358,6 +359,7 @@ RecycleContext.prototype._recalculateSize = function (list) {
     // 判断数据落到哪个方格上
     // 超过了宽度, 移动到下一行, 再根据高度判断是否需要移动到下一个方格
     if (offsetLeft + itemSize.width > compData.width) {
+      column = 0
       offsetLeft = itemSize.width
       // Fixed issue #22
       if (sizeArray.length >= 2) {
@@ -368,9 +370,21 @@ RecycleContext.prototype._recalculateSize = function (list) {
       // offsetTop += sizeArray[sizeArray.length - 2].height // 加上最后一个数据的高度
       // 根据高度判断是否需要移动到下一个方格
       if (offsetTop >= RECT_SIZE * (line + 1)) {
+        // fix: 当区块比较大时，会缺失块区域信息
+        const lastIdx = i - 1
+        const lastLine = line
+
         line += parseInt((offsetTop - RECT_SIZE * line) / RECT_SIZE, 10)
+
+        for (let idx = lastLine; idx < line; idx++) {
+          const key = `${idx}.${column}`
+          if (!sizeMap[key]) {
+            sizeMap[key] = []
+          }
+          sizeMap[key].push(lastIdx)
+        }
       }
-      column = 0
+
       // 新起一行的元素, beforeHeight是前一个元素的beforeHeight和height相加
       if (i === 0) {
         itemSize.beforeHeight = 0
@@ -395,6 +409,20 @@ RecycleContext.prototype._recalculateSize = function (list) {
       (sizeMap[key] = [])
     }
     sizeMap[key].push(i)
+
+    // fix: 当区块比较大时，会缺失块区域信息
+    if (listLen - 1 === i && itemSize.height > RECT_SIZE) {
+      const lastIdx = line
+      offsetTop += itemSize.height
+      line += parseInt((offsetTop - RECT_SIZE * line) / RECT_SIZE, 10)
+      for (let idx = lastIdx; idx <= line; idx++) {
+        const key = `${idx}.${column}`
+        if (!sizeMap[key]) {
+          sizeMap[key] = []
+        }
+        sizeMap[key].push(i)
+      }
+    }
   }
   // console.log('sizeMap', sizeMap)
   const obj = {

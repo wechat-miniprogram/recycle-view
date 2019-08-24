@@ -549,7 +549,7 @@ Component({
       // 重新渲染事件发生
       let beforeReady = false
       let afterReady = false
-      // Fix issue #16
+      // fix：#16 确保获取slot节点实际高度
       this.setData({
         hasBeforeSlotHeight: false,
         hasAfterSlotHeight: false,
