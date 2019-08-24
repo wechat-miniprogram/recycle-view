@@ -550,20 +550,26 @@ Component({
       // 重新渲染事件发生
       let beforeReady = false
       let afterReady = false
-      this.createSelectorQuery().select('.slot-before').boundingClientRect((rect) => {
-        beforeSlotHeight = rect.height
-        beforeReady = true
-        if (afterReady) {
-          if (newCb) { newCb() }
-        }
-      }).exec()
-      this.createSelectorQuery().select('.slot-after').boundingClientRect((rect) => {
-        afterSlotHeight = rect.height
-        afterReady = true
-        if (beforeReady) {
-          if (newCb) { newCb() }
-        }
-      }).exec()
+      // fix：#16 确保获取slot节点实际高度
+      this.setData({
+        hasBeforeSlotHeight: false,
+        hasAfterSlotHeight: false,
+      }, () => {
+        this.createSelectorQuery().select('.slot-before').boundingClientRect((rect) => {
+          beforeSlotHeight = rect.height
+          beforeReady = true
+          if (afterReady) {
+            if (newCb) { newCb() }
+          }
+        }).exec()
+        this.createSelectorQuery().select('.slot-after').boundingClientRect((rect) => {
+          afterSlotHeight = rect.height
+          afterReady = true
+          if (beforeReady) {
+            if (newCb) { newCb() }
+          }
+        }).exec()
+      })
     },
     _setInnerBeforeAndAfterHeight(obj) {
       if (typeof obj.beforeHeight !== 'undefined') {
