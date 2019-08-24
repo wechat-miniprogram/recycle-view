@@ -1,6 +1,6 @@
 <!-- <button bindtap="showRecycleview1">showRecycleview</button> -->
 <!-- <button bindtap="hideRecycleview">hideRecycleview</button> -->
-<recycle-view class="recycle-list" placeholder-image="{{placeholderImage}}" bindscrolltolower="scrollToLower" scroll-with-animation="{{true}}" scroll-to-index="{{index}}" scroll-top="{{scrollTop}}" height="500" id="recycleId">
+<recycle-view class="recycle-list" placeholder-image="{{placeholderImage}}" bindscrolltolower="scrollToLower" scroll-with-animation="{{true}}" batch="{{batchSetRecycleData}}" batch-key="batchSetRecycleData" scroll-to-index="{{index}}" scroll-top="{{scrollTop}}" height="500" id="recycleId">
   <view slot="before" style=''>
     <button bindtap="scrollTo2000">scrollTo2000</button>
     <button bindtap="scrollTo0">scrollTo0</button>

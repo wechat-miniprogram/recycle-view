@@ -1,15 +1,9 @@
 /* eslint complexity: ["error", {"max": 50}] */
 /* eslint-disable indent */
-let SHOW_SCREENS = 4
-let MAX_SHOW_SCREENS = 5 // 5和3刚好合适？
-const DEFAULT_SHOW_SCREENS = SHOW_SCREENS
-const DEFAULT_MAX_SHOW_SCREENS = MAX_SHOW_SCREENS
+const DEFAULT_SHOW_SCREENS = 4
 const RECT_SIZE = 200
 const systemInfo = wx.getSystemInfoSync()
 const DEBUG = false
-const BOUNDARY_INTERVAL = 400 // 到达边界多少距离的时候, 直接改为边界位置
-const SETDATA_INTERVAL_BOUNDARY = 300 // 大于300ms则减少MAX_SHOW_SCREEN的值
-const SETDATA_INTERVAL_BOUNDARY_1 = 500
 const transformRpx = require('./utils/transformRpx.js').transformRpx
 
 Component({
@@ -56,6 +50,17 @@ Component({
     scrollY: {
       type: Boolean,
       value: true,
+    },
+    batch: {
+      type: Boolean,
+      value: false,
+      public: true,
+      observer: '_recycleInnerBatchDataChanged'
+    },
+    batchKey: {
+      type: String,
+      value: 'batchSetRecycleData',
+      public: true,
     },
     scrollTop: {
       type: Number,
@@ -115,6 +120,11 @@ Component({
       type: String,
       public: true,
       value: ''
+    },
+    screen: { // 默认渲染多少屏的数据
+      type: Number,
+      public: true,
+      value: DEFAULT_SHOW_SCREENS
     }
   },
 
@@ -156,7 +166,6 @@ Component({
         }
       }, true)
     })
-    this._totalTime = this._totalCount = 0
   },
   detached() {
     this.page = null
@@ -165,7 +174,6 @@ Component({
       this.context.destroy()
       this.context = null
     }
-    if (this.timerId) clearTimeout(this.timerId)
   },
   /**
    * 组件的方法列表
@@ -186,7 +194,6 @@ Component({
       this.triggerEvent('scrolltolower', e.detail)
     },
     _beginToScroll() {
-      this._lastRenderTime = Date.now()
       if (!this._lastScrollTop) {
         this._lastScrollTop = this._pos && (this._pos.top || 0)
       }
@@ -235,39 +242,14 @@ Component({
       const that = this
       const scrollLeft = e.detail.scrollLeft
       const scrollTop = e.detail.scrollTop
-      let isMatchBoundary = false
-      if (scrollTop - BOUNDARY_INTERVAL < 0) {
-        // scrollTop = 0
-        isMatchBoundary = true
-      }
-      if (this.totalHeight - scrollTop - BOUNDARY_INTERVAL < this.data.height) {
-        // scrollTop = this.totalHeight - this.data.height
-        // isMatchBoundary = true
-      }
-      const usetime = Date.now() - this._lastRenderTime
       const scrollDistance = Math.abs(scrollTop - this._lastScrollTop)
 
       this._lastScrollTop = scrollTop
-      this._lastRenderTime = Date.now()
-      // 当scroll触发时间大于200ms且大于滚动距离，下一个滚动距离会极高，容易出现白屏，因此需要马上渲染
-      const isNextScrollExpose = false
-      // const mustRender = force || isMatchBoundary || isNextScrollExpose
-      const mustRender = force || isNextScrollExpose
-      this._log('scrollTop', e.detail.scrollTop, isMatchBoundary, mustRender)
-      if (!mustRender) {
-        if ((Math.abs(scrollTop - pos.top) < pos.height * 1.5)) {
-          this._log('【not exceed height')
-          return
-        }
-      }
-      if (force && this.timerId) {
-        clearTimeout(this.timerId)
-      }
-      SHOW_SCREENS = DEFAULT_SHOW_SCREENS // 固定4屏幕
-      this._log('SHOW_SCREENS', SHOW_SCREENS, scrollTop, isNextScrollExpose)
+      const SHOW_SCREENS = this.data.screen // 固定4屏幕
+      this._log('SHOW_SCREENS', SHOW_SCREENS, scrollTop)
       this._calcViewportIndexes(scrollLeft, scrollTop,
           (beginIndex, endIndex, minTop, afterHeight, maxTop) => {
-        that._log('scrollDistance', scrollDistance, 'usetime', usetime, 'indexes', beginIndex, endIndex)
+        that._log('scrollDistance', scrollDistance, 'indexes', beginIndex, endIndex)
         // 渲染的数据不变
         if (!force && pos.beginIndex === beginIndex && pos.endIndex === endIndex &&
             pos.minTop === minTop && pos.afterHeight === afterHeight) {
@@ -286,32 +268,12 @@ Component({
         pos.maxTop = maxTop
         pos.afterHeight = afterHeight
         pos.ignoreBeginIndex = pos.ignoreEndIndex = -1
-        pos.lastSetDataTime = Date.now() // 用于节流时间判断
-        that._isScrollRendering = true
-        const st = Date.now()
         that.page._recycleViewportChange({
           detail: {
             data: that._pos,
             id: that.id
           }
         }, () => {
-          that._isScrollRendering = false
-          if (that._totalCount < 5) {
-            that._totalCount++
-            that._totalTime += (Date.now() - st)
-          } else {
-            that._totalCount = 1
-            that._totalTime = (Date.now() - st)
-          }
-          pos.lastSetDataTime = 0 // 用于节流时间判断
-          // if (that._totalCount / that._totalTime <= SETDATA_INTERVAL_BOUNDARY) {
-          //   MAX_SHOW_SCREENS = DEFAULT_MAX_SHOW_SCREENS + 1 // 多渲染2个屏幕的内容
-          if (that._totalTime / that._totalCount > SETDATA_INTERVAL_BOUNDARY) {
-            that._log('【【SHOW_SCREENS 调整', that._totalCount / that._totalTime)
-            MAX_SHOW_SCREENS = DEFAULT_MAX_SHOW_SCREENS - 1
-          } else if (that._totalTime / that._totalCount > SETDATA_INTERVAL_BOUNDARY_1) {
-            MAX_SHOW_SCREENS = DEFAULT_MAX_SHOW_SCREENS - 2
-          }
           if (e.detail.cb) {
             e.detail.cb()
           }
@@ -405,6 +367,7 @@ Component({
       // top = Math.max(top, this.data.beforeSlotHeight)
       const beforeSlotHeight = this.data.beforeSlotHeight || 0
       // 和direction无关了
+      const SHOW_SCREENS = this.data.screen
       let minTop = top - pos.height * SHOW_SCREENS - beforeSlotHeight
       let maxTop = top + pos.height * SHOW_SCREENS - beforeSlotHeight
       // maxTop或者是minTop超出了范围
