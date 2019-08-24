@@ -12,8 +12,8 @@
 		"nodeModules": true
 	},
 	"compileType": "miniprogram",
-	"libVersion": "2.2.3",
-	"appid": "",
+	"libVersion": "2.7.0",
+	"appid": "wxe0b5580bba739b69",
 	"projectname": "recycle-view",
 	"isGameTourist": false,
 	"condition": {

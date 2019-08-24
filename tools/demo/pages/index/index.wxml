@@ -1,19 +1,16 @@
 <!-- <button bindtap="showRecycleview1">showRecycleview</button> -->
 <!-- <button bindtap="hideRecycleview">hideRecycleview</button> -->
-<recycle-view class="recycle-list" placeholder-image="{{placeholderImage}}" bindscrolltolower="scrollToLower" scroll-with-animation="{{true}}" scroll-to-index="{{index}}" scroll-top="{{scrollTop}}" batch="{{batchSetRecycleData}}" height="500" id="recycleId">
+<recycle-view class="recycle-list" placeholder-image="{{placeholderImage}}" bindscrolltolower="scrollToLower" scroll-with-animation="{{true}}" scroll-to-index="{{index}}" scroll-top="{{scrollTop}}" height="500" id="recycleId">
   <view slot="before" style=''>
     <button bindtap="scrollTo2000">scrollTo2000</button>
     <button bindtap="scrollTo0">scrollTo0</button>
     <button bindtap="scrollToid" style="height:123.5rpx">scrollToIdx</button>
   </view>
-  <view slot="itemsize">
-    <template is="recycleItem" data="{{item: item, recycleList: recycleListItemSize}}"></template>
-  </view>
   <template is="recycleItem" data="{{item: item, recycleList: recycleList}}"></template>
   <view slot="after" style="height:200px;">after height:200px view</view>
 </recycle-view>
 <template name="recycleItem">
-  <recycle-item style="width:50%;" wx:for="{{recycleList}}" wx:key="id">
+  <recycle-item style="width:50%;height:160px;" wx:for="{{recycleList}}" wx:key="id">
     <view class="recycle-itemsize" style="width:100%;height:{{item.test.azFirst ? 160 : 160}}px;position: relative;">
         <image class='recycle-image' style='width:80px;height:80px;' src="{{item.image_url}}?imageView2/2/w/120/h/0/q/120/format/jpg"></image>
       <text class="recycle-text">{{item.idx+1}}. {{item.title}}</text>

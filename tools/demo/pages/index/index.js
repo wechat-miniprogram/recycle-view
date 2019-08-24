@@ -18,12 +18,11 @@ Page({
       id: 'recycleId',
       dataKey: 'recycleList',
       page: this,
-      itemSize: {
-        props: 'azFirst',
-        // cacheKey: 'cacheKey', // 预先缓存的key
-        queryClass: 'recycle-itemsize', // 动态查询的class
-        dataKey: 'recycleListItemSize', // 预先渲染的数据的wx:for绑定的变量
-        // componentClass: 'recycle-list'
+      itemSize: function(item, index) {
+        return {
+          width: systemInfo.windowWidth / 2,
+          height: 160
+        }
       },
       placeholderClass: ['recycle-image', 'recycle-text'],
       // itemSize: function(item) {

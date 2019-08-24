@@ -53,10 +53,9 @@ Component({
       type: Boolean,
       value: false
     },
-    batch: {
+    scrollY: {
       type: Boolean,
-      value: false,
-      observer: '_recycleInnerBatchDataChanged'
+      value: true,
     },
     scrollTop: {
       type: Number,
@@ -550,20 +549,26 @@ Component({
       // 重新渲染事件发生
       let beforeReady = false
       let afterReady = false
-      this.createSelectorQuery().select('.slot-before').boundingClientRect((rect) => {
-        beforeSlotHeight = rect.height
-        beforeReady = true
-        if (afterReady) {
-          if (newCb) { newCb() }
-        }
-      }).exec()
-      this.createSelectorQuery().select('.slot-after').boundingClientRect((rect) => {
-        afterSlotHeight = rect.height
-        afterReady = true
-        if (beforeReady) {
-          if (newCb) { newCb() }
-        }
-      }).exec()
+      // Fix issue #16
+      this.setData({
+        hasBeforeSlotHeight: false,
+        hasAfterSlotHeight: false,
+      }, () => {
+        this.createSelectorQuery().select('.slot-before').boundingClientRect((rect) => {
+          beforeSlotHeight = rect.height
+          beforeReady = true
+          if (afterReady) {
+            if (newCb) { newCb() }
+          }
+        }).exec()
+        this.createSelectorQuery().select('.slot-after').boundingClientRect((rect) => {
+          afterSlotHeight = rect.height
+          afterReady = true
+          if (beforeReady) {
+            if (newCb) { newCb() }
+          }
+        }).exec()
+      })
     },
     _setInnerBeforeAndAfterHeight(obj) {
       if (typeof obj.beforeHeight !== 'undefined') {
@@ -573,7 +578,7 @@ Component({
         this._tmpAfterHeight = obj.afterHeight
       }
     },
-    _recycleInnerBatchDataChanged() {
+    _recycleInnerBatchDataChanged(cb) {
       if (typeof this._tmpBeforeHeight !== 'undefined') {
         const setObj = {
           innerBeforeHeight: this._tmpBeforeHeight || 0,
@@ -583,16 +588,27 @@ Component({
           setObj.innerScrollTop = this._tmpInnerScrollTop
         }
         const pageObj = {}
+        let hasPageData = false
         if (typeof this._currentSetDataKey !== 'undefined') {
           pageObj[this._currentSetDataKey] = this._currentSetDataList
-          this.page.setData(pageObj)
+          hasPageData = true
         }
         const saveScrollWithAnimation = this.data.scrollWithAnimation
-        this.setData(setObj, () => {
-          this.setData({
-            scrollWithAnimation: saveScrollWithAnimation
+        const groupSetData = () => {
+          // 如果有分页数据的话
+          if (hasPageData) {
+            this.page.setData(pageObj)
+          }
+          this.setData(setObj, () => {
+            this.setData({
+              scrollWithAnimation: saveScrollWithAnimation
+            })
+            if (typeof cb === 'function') {
+              cb()
+            }
           })
-        })
+        }
+        groupSetData()
         delete this._currentSetDataKey
         delete this._currentSetDataList
         this._tmpBeforeHeight = undefined

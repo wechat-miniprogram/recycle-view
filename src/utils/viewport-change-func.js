@@ -24,21 +24,26 @@ module.exports = function (e, cb) {
     }
   }
   const obj = {
-    batchSetRecycleData: !this.data.batchSetRecycleData
   }
-  // const setDataStart = +new Date()
   obj[item.key] = newList
   const comp = this.selectComponent('#' + detail.id)
-  // comp.setList(item.key, newList)
   comp._setInnerBeforeAndAfterHeight({
     beforeHeight: pos.minTop,
     afterHeight: pos.afterHeight
   })
-  // console.log('before set recycleData')
-  this.setData(obj, function () {
-    if (typeof cb === 'function') {
-      cb()
-    }
-    // console.log('set recycleData data use time', Date.now() - setDataStart, JSON.stringify(pos))
-  })
+  // Fix #1
+  // 去掉了batchSetDataKey，支持一个页面内显示2个recycle-view
+  const groupSetData = () => {
+    this.setData(obj)
+    comp._recycleInnerBatchDataChanged(() => {
+      if (typeof cb === 'function') {
+        cb()
+      }
+    })
+  }
+  if (typeof this.groupSetData === 'function') {
+    this.groupSetData(groupSetData)
+  } else {
+    groupSetData()
+  }
 }

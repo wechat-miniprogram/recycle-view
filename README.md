@@ -20,8 +20,6 @@
 
 ​ 假设列表数据有100个 item，知道了滚动的位置，怎么知道哪些 item 必须显示在页面？因为 item 还没渲染出来，不能通过 getComputedStyle 等 DOM 操作得到每个 item 的位置，所以无法知道哪些 item 需要渲染。为了解决这个问题，需要每个 item 固定宽高。item 的宽高的定义见下面的 API 的`createRecycleContext()`的参数 itemSize 的介绍。
 
-​ 滚动过程中，重新渲染数据的同时，需要设置当前数据的前后的 div 占位元素高度，同时是指在同一个渲染周期内。页面渲染是通过 setData 触发的，列表数据和 div 占位高度在2个组件内进行 setData 的，为了把这2个 setData 放在同一个渲染周期，用了一个 hack 方法，所以定义 recycle-view 的 batch 属性固定为`batch="{{batchSetRecycleData}}"`。
-
 ​ 在滚动过程中，为了避免频繁出现白屏，会多渲染当前屏幕的前后2个屏幕的内容。
 
 ## 包结构
@@ -65,7 +63,7 @@ npm install --save miniprogram-recycle-view
 3. WXML 文件中引用 recycle-view
 
    ```xml
-   <recycle-view batch="{{batchSetRecycleData}}" id="recycleId">
+   <recycle-view id="recycleId">
      <view slot="before">长列表前面的内容</view>
      <recycle-item wx:for="{{recycleList}}" wx:key="id">
        <view>
@@ -82,11 +80,11 @@ npm install --save miniprogram-recycle-view
    | 字段名                | 类型    | 必填 | 描述                                      |
    | --------------------- | ------- | ---- | ----------------------------------------- |
    | id                    | String  | 是   | id必须是页面唯一的字符串                  |
-   | batch                 | Boolean | 是   | 必须设置为{{batchSetRecycleData}}才能生效 |
    | height                | Number  | 否   | 设置recycle-view的高度，默认为页面高度    |
    | width                 | Number  | 否   | 设置recycle-view的宽度，默认是页面的宽度  |
    | enable-back-to-top    | Boolean | 否   | 默认为false，同scroll-view同名字段        |
    | scroll-top            | Number  | 否   | 默认为false，同scroll-view同名字段        |
+   | scroll-y              | Number  | 否   | 默认为true，同scroll-view同名字段        |
    | scroll-to-index       | Number  | 否   | 设置滚动到长列表的项                      |
    | placeholder-image     | String  | 否   | 默认占位背景图片，在渲染不及时的时候显示，不建议使用大图作为占位。建议传入SVG的Base64格式，可使用[工具](https://codepen.io/jakob-e/pen/doMoML)将SVG代码转为Base64格式。支持SVG中设置rpx。 |
    | scroll-with-animation | Boolean | 否   | 默认为false，同scroll-view的同名字段      |
@@ -103,7 +101,6 @@ npm install --save miniprogram-recycle-view
    | before    | 默认 slot 的前面的非回收区域                              |
    | 默认 slot | 长列表的列表展示区域，recycle-item 必须定义在默认 slot 中 |
    | after     | 默认 slot 的后面的非回收区域                              |
-   | itemsize  | 动态生成宽高的预先加载数据的slot                          |
 
    ​  长列表的内容实际是在一个 scroll-view 滚动区域里面的，当长列表里面的内容，不止是单独的一个列表的时候，例如我们页面底部都会有一个 copyright 的声明，我们就可以把这部分的内容放在 before 和 after 这2个 slot 里面。
 
@@ -178,17 +175,15 @@ npm install --save miniprogram-recycle-view
    }
    ```
 
-   
-
+  
    ## Tips
 
-   1. recycle-view设置batch属性的值必须为{{batchSetRecycleData}}。
-   2. recycle-item的宽高必须和itemSize设置的宽高一致，否则会出现跳动的bug。
-   3. recycle-view设置的高度必须和其style里面设置的样式一致。
-   4. `createRecycleContext(options)`的id参数必须和recycle-view的id属性一致，dataKey参数必须和recycle-item的wx:for绑定的变量名一致。
-   5. 不能在recycle-item里面使用wx:for的index变量作为索引值的，请使用{{item.\_\_index\_\_}}替代。
-   6. 不要通过setData设置recycle-item的wx:for的变量值，建议recycle-item设置wx:key属性。
-   7. 如果长列表里面包含图片，必须保证图片资源是有HTTP缓存的，否则在滚动过程中会发起很多的图片请求。
-   8. 有些数据不一定会渲染出来，使用wx.createSelectorQuery的时候有可能会失效，可使用RecycleContext的getBoundingClientRect来替代。
-   9. 当使用了useInPage参数的时候，必须在Page里面定义onPageScroll事件。
-  10. transformRpx会进行四舍五入，所以`transformRpx(20) + transformRpx(90)`不一定等于`transformRpx(110)`
+   1. recycle-item的宽高必须和itemSize设置的宽高一致，否则会出现跳动的bug。
+   2. recycle-view设置的高度必须和其style里面设置的样式一致。
+   3. `createRecycleContext(options)`的id参数必须和recycle-view的id属性一致，dataKey参数必须和recycle-item的wx:for绑定的变量名一致。
+   4. 不能在recycle-item里面使用wx:for的index变量作为索引值的，请使用{{item.\_\_index\_\_}}替代。
+   5. 不要通过setData设置recycle-item的wx:for的变量值，建议recycle-item设置wx:key属性。
+   6. 如果长列表里面包含图片，必须保证图片资源是有HTTP缓存的，否则在滚动过程中会发起很多的图片请求。
+   7. 有些数据不一定会渲染出来，使用wx.createSelectorQuery的时候有可能会失效，可使用RecycleContext的getBoundingClientRect来替代。
+   8. 当使用了useInPage参数的时候，必须在Page里面定义onPageScroll事件。
+  9. transformRpx会进行四舍五入，所以`transformRpx(20) + transformRpx(90)`不一定等于`transformRpx(110)`

@@ -359,7 +359,13 @@ RecycleContext.prototype._recalculateSize = function (list) {
     // 超过了宽度, 移动到下一行, 再根据高度判断是否需要移动到下一个方格
     if (offsetLeft + itemSize.width > compData.width) {
       offsetLeft = itemSize.width
-      offsetTop += sizeArray[sizeArray.length - 2].height // 加上最后一个数据的高度
+      // Fixed issue #22
+      if (sizeArray.length >= 2) {
+        offsetTop += sizeArray[sizeArray.length - 2].height || 0 // 加上最后一个数据的高度
+      } else {
+        offsetTop += itemSize.height
+      }
+      // offsetTop += sizeArray[sizeArray.length - 2].height // 加上最后一个数据的高度
       // 根据高度判断是否需要移动到下一个方格
       if (offsetTop >= RECT_SIZE * (line + 1)) {
         line += parseInt((offsetTop - RECT_SIZE * line) / RECT_SIZE, 10)
