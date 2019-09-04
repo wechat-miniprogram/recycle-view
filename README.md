@@ -164,6 +164,7 @@ npm install --save miniprogram-recycle-view
    | getScrollTop          | 无                           | 获取长列表的当前的滚动位置。                                 |
    | transformRpx          | rpx                          | 将rpx转化为px，返回转化后的px整数。itemSize返回的宽高单位是px，可以在这里调用此函数将rpx转化为px，参数是Number，例如ctx.transformRpx(140)，返回70。注意，transformRpx会进行四舍五入，所以transformRpx(20) + transformRpx(90)不一定等于transformRpx(110) |
    | getViewportItems      | inViewportPx                 | 获取在视窗内的数据项，用于判断某个项是否出现在视窗内。用于曝光数据上报，菜品和类别的联动效果实现。参数inViewportPx表示距离屏幕多少像素为出现在屏幕内，可以为负值。 |
+   | getData               |                              | 获取长列表添加的数据 |
 
    ## itemSize使用
 
