@@ -510,7 +510,7 @@ RecycleContext.prototype.destroy = function () {
 }
 // 获取设置的数据
 RecycleContext.prototype.getData = function() {
-  return recycleData[this.id];
+  return recycleData[this.id].list;
 }
 // 重新更新下页面的数据
 RecycleContext.prototype.forceUpdate = function (cb, reinitSlot) {
