@@ -340,9 +340,7 @@ RecycleContext.prototype._recalculateSize = function (list) {
   const listLen = list.length
   // 把整个页面拆分成200*200的很多个方格, 判断每个数据落在哪个方格上
   for (let i = 0; i < listLen; i++) {
-    if (typeof list[i].__index__ === 'undefined') {
-      list[i].__index__ = i
-    }
+    list[i].__index__ = i
     let itemSize = {}
     // 获取到每一项的宽和高
     if (funcExist) {
@@ -573,5 +571,9 @@ RecycleContext.prototype.getViewportItems = function (inViewportPx) {
 RecycleContext.prototype.getTotalHeight = function () {
   this.checkComp()
   return this.comp.getTotalHeight()
+}
+// 返回完整的列表数据
+RecycleContext.prototype.getList = function () {
+  return recycleData[this.id].list
 }
 module.exports = RecycleContext
