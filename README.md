@@ -149,7 +149,6 @@ npm install --save miniprogram-recycle-view
    | itemSize | Object/Function | 此参数用来生成recycle-item的宽和高，前面提到过，要知道当前需要渲染哪些item，必须知道item的宽高才能进行计算<br />Object必须包含{width, height}两个属性，Function的话接收item, index这2个参数，返回一个包含{width, height}的Object<br />itemSize如果是函数，函数里面`this`指向RecycleContext<br />如果样式使用了rpx，可以通过transformRpx来转化为px。<br />为Object类型的时候，还有另外一种用法，详细情况见下面的itemSize章节的介绍。 |
    | useInPage | Boolean | 是否整个页面只有recycle-view。Page的定义里面必须至少加空的onPageScroll函数，主要是用在页面级别的长列表，并且需要用到onPullDownRefresh的效果。切必须设置`root`参数为当前页面对象 |
    | root | Page | 当前页面对象，可以通过getCurrentPages获取, 当useInPage为true必须提供 |
-   | placeholderClass | Array | 和itemSize的最后一种用法一起配合，自动生成placeholder-image占位背景图。详见最后itemSize章节的介绍。 |
 
    RecycleContext 对象提供的方法有：
 
