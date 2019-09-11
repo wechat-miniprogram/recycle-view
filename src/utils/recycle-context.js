@@ -574,6 +574,9 @@ RecycleContext.prototype.getTotalHeight = function () {
 }
 // 返回完整的列表数据
 RecycleContext.prototype.getList = function () {
+  if (!recycleData[this.id]) {
+    return [];
+  }
   return recycleData[this.id].list
 }
 module.exports = RecycleContext
