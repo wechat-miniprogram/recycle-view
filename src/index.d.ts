@@ -7,7 +7,7 @@ declare namespace recycleContext {
     type Component = any;
     type Page = any;
     
-    type itemSizeFunc<T> = (item: T, index: number) => void
+    type itemSizeFunc<T> = (item: T, index: number) => itemSize
     
     interface options<T> {
         id: string;
