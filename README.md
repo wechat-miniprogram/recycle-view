@@ -139,6 +139,11 @@ npm install --save miniprogram-recycle-view
    })
    ```
 
+   `typescript`支持,使用如下方式引入
+   ```typescript
+   import * as recycleContext from 'miniprogram-recycle-view';
+   ```
+
    ​  页面必须通过 Component 构造器定义，页面引入了`miniprogram-recycle-view`包之后，会在 wx 对象下面新增接口`createRecycleContext`函数创建`RecycleContext`对象来管理 recycle-view 定义的的数据，`createRecycleContext`接收类型为1个 Object 的参数，Object 参数的每一个 key 的介绍如下：
 
    | 参数名    | 类型            | 描述                                                             |
