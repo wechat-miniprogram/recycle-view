@@ -26,13 +26,13 @@ declare namespace recycleContext {
     }
     
     interface RecycleContext<T> {
-        append(list: T[], callback?: () => void): void
-        appendList(list: T[], callback?: () => void): void
-        splice(begin: number, deleteCount: number, appendList: T[], callback?: () => void): void;
-        updateList(beginIndex: number, list: T[], callback?: () => void): void
-        update(beginIndex: number, list: T[], callback?: () => void): void
-        destroy(): void
-        forceUpdate(callback: () => void, reinitSlot: boolean): void
+        append(list: T[], callback?: () => void): RecycleContext<T>
+        appendList(list: T[], callback?: () => void): RecycleContext<T>
+        splice(begin: number, deleteCount: number, appendList: T[], callback?: () => void): RecycleContext<T>;
+        updateList(beginIndex: number, list: T[], callback?: () => void): RecycleContext<T>
+        update(beginIndex: number, list: T[], callback?: () => void): RecycleContext<T>
+        destroy(): RecycleContext<T>
+        forceUpdate(callback: () => void, reinitSlot: boolean): RecycleContext<T>
         getBoundingClientRect(index: number | undefined): position | position[]
         getScrollTop(): number;
         transformRpx(rpx: number, addPxSuffix?: string): number;
@@ -40,6 +40,6 @@ declare namespace recycleContext {
         getList(): T[]
     }
 }
-declare function recycleContext<T>(op: recycleContext.options<T>): recycleContext.RecycleContext<T>
+declare function createRecycleContext<T>(op: recycleContext.options<T>): recycleContext.RecycleContext<T>
 
-export = recycleContext;
+export = createRecycleContext;

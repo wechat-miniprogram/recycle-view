@@ -243,7 +243,10 @@ Component({
       const scrollLeft = e.detail.scrollLeft
       const scrollTop = e.detail.scrollTop
       const scrollDistance = Math.abs(scrollTop - this._lastScrollTop)
-
+      if (!force && (Math.abs(scrollTop - pos.top) < pos.height * 1.5)) {
+        this._log('【not exceed height')
+        return
+      }
       this._lastScrollTop = scrollTop
       const SHOW_SCREENS = this.data.screen // 固定4屏幕
       this._log('SHOW_SCREENS', SHOW_SCREENS, scrollTop)
