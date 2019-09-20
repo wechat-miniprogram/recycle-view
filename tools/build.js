@@ -231,10 +231,16 @@ class BuildTask {
     /**
      * copy resources to dist folder
      */
-    gulp.task(`${id}-copy`, gulp.parallel(done => {
+    gulp.task(`${id}-copy`, gulp.parallel(async done => {
       const copyList = this.copyList
-      const copyFileList = copyList.map(dir => path.join(dir, '**/*.!(wxss)'))
-
+      const anAsyncFunction = async dir => {
+        const isFileExist = await _.checkFileExists(path.join(srcPath, dir));
+        if (!isFileExist){
+          return path.join(dir, '**/*.!(wxss)')
+        }
+        return dir
+      }
+      const copyFileList =  await Promise.all(copyList.map(item => anAsyncFunction(item)))
       if (copyFileList.length) return copy(copyFileList)
 
       return done()
