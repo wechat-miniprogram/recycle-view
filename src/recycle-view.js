@@ -329,7 +329,7 @@ Component({
       let endIndex
       const sizeMap = this.sizeMap
       for (let i = startLine; i <= endLine; i++) {
-        for (let col = 0; col < rectEachLine; col++) {
+        for (let col = 0; col <= rectEachLine; col++) {
           const key = `${i}.${col}`
           // 找到sizeMap里面的最小值和最大值即可
           if (!sizeMap[key]) continue
