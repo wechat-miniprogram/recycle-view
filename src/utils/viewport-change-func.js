@@ -28,7 +28,9 @@ module.exports = function (e, cb) {
   }
   obj[item.key] = newList
   const comp = this.selectComponent('#' + detail.id)
-  obj[comp.data.batchKey] = !this.data.batchSetRecycleData
+  // obj[comp.data.batchKey] = !this.data.batchSetRecycleData
+  // Fix 触发batch监听 重新设置scrollTop值等 (触发 _recycleInnerBatchDataChanged 函数)
+  obj[comp.data.batchKey] = !comp.data.batch
   comp._setInnerBeforeAndAfterHeight({
     beforeHeight: pos.minTop,
     afterHeight: pos.afterHeight
