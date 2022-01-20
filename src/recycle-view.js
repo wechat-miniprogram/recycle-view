@@ -125,7 +125,22 @@ Component({
       type: Number,
       public: true,
       value: DEFAULT_SHOW_SCREENS
-    }
+    },
+    // 以下是自定义组件下拉刷新属性
+    "refresherEnabled": Boolean,
+    "refresherThreshold": {
+      type: Number,
+      value: 45
+    },
+    "refresherDefaultStyle": {
+      type: String,
+      value: 'black'
+    },
+    "refresherBackground": {
+      type: String,
+      value: '#FFF'
+    },
+    "refresherTriggered": Boolean
   },
 
   /**
@@ -192,6 +207,9 @@ Component({
     },
     _scrollToLower(e) {
       this.triggerEvent('scrolltolower', e.detail)
+    },
+    _refresherrefresh(e) {
+      this.triggerEvent('refresherrefresh', e.detail);
     },
     _beginToScroll() {
       if (!this._lastScrollTop) {
