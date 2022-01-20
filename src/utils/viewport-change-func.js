@@ -28,7 +28,8 @@ module.exports = function (e, cb) {
   }
   obj[item.key] = newList
   const comp = this.selectComponent('#' + detail.id)
-  obj[comp.data.batchKey] = !this.data.batchSetRecycleData
+  // obj[comp.data.batchKey] = !this.data.batchSetRecycleData
+  obj[comp.data.batchKey] = !comp.data.batch
   comp._setInnerBeforeAndAfterHeight({
     beforeHeight: pos.minTop,
     afterHeight: pos.afterHeight
