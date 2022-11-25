@@ -7,7 +7,7 @@
     <view style="height:{{hasBeforeSlotHeight ? beforeSlotHeight + 'px' : 'auto'}}" class="slot-before">
       <slot name="before"></slot>
     </view>
-    <view style='position:relative;width:100%;z-index:10;background: url("{{placeholderImageStr}}") repeat;height:{{totalHeight}}px;'>
+    <view style="position:relative;width:100%;z-index:10;{{placeholderImageStr? 'background: url(' + placeholderImageStr + ') repeat' : '' }};height:{{totalHeight}}px;">
       <!-- <view class='before' style="height:{{innerBeforeHeight}}px"></view> -->
       <view style="position: absolute;left:0;width:100%;top:{{innerBeforeHeight}}px;">
         <slot></slot>
