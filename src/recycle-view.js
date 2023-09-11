@@ -17,7 +17,7 @@ Component({
         // 检查第一个的尺寸就好了吧
         if (!this._hasCheckSize) {
           this._hasCheckSize = true
-          const size = this.boundingClientRect(this._pos.beginIndex)
+          const size = this._pos && this.boundingClientRect(this._pos.beginIndex)
           if (!size) {
             return
           }
