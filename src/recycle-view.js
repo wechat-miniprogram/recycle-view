@@ -11,13 +11,13 @@ Component({
     multipleSlots: true // 在组件定义时的选项中启用多slot支持
   },
   relations: {
-    '../recycle-item/recycle-item': {
+    './recycle-item': {
       type: 'child', // 关联的目标节点应为子节点
       linked(target) {
         // 检查第一个的尺寸就好了吧
         if (!this._hasCheckSize) {
           this._hasCheckSize = true
-          const size = this.boundingClientRect(this._pos.beginIndex)
+          const size = this._pos && this.boundingClientRect(this._pos.beginIndex)
           if (!size) {
             return
           }
